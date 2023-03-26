@@ -35,8 +35,8 @@ func main() {
 		},
 	}
 
-	nameFilterInput := text_filter_input.New("/")
-	tagFilterInput := text_filter_input.New("#")
+	nameFilterInput := text_filter_input.New("/ ")
+	tagFilterInput := text_filter_input.New("# ")
 
 	contentList := filterable_content_list.New(content)
 	contentList.Focus()

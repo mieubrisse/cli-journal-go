@@ -11,6 +11,10 @@ import (
 	"strings"
 )
 
+const (
+	tagsTextColor = lipgloss.Color("#E0B0FF")
+)
+
 // This
 type Model struct {
 	// Whether to highlight the cursor line or not
@@ -114,11 +118,14 @@ func (model Model) View() string {
 			maybeCheckmark = "✔️"
 		}
 
+		tags := strings.Join(content.Tags, " ")
+		joinedTags := lipgloss.NewStyle().Foreground(tagsTextColor).Render(tags)
+
 		line := fmt.Sprintf(
 			"%s  %s     %s",
 			maybeCheckmark,
 			content.Name,
-			strings.Join(content.Tags, " "),
+			joinedTags,
 		)
 		lineStyle := baseStyle.Copy()
 		if model.isFocused && idx == model.cursorIdx {
