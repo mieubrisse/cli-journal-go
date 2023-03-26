@@ -92,11 +92,20 @@ func (model Model) View() string {
 		componentStyle = componentStyle.Background(global_styles.FocusedComponentBackgroundColor)
 	}
 
+	// First calculate the footer, so we know its height so we know how big to make the content
+	footerStr := ""
+	numSelectedItems := len(model.selectedItemIndexes.GetIndices())
+	if len(model.selectedItemIndexes.GetIndices()) > 0 {
+		footerStr = fmt.Sprintf(" %d items selected", numSelectedItems)
+	}
+	style := lipgloss.NewStyle().Foreground(lipgloss.Color("#eed202"))
+	renderedFooter := style.Render(footerStr)
+
+	// Now calculate content
 	contentLines := []string{}
 	if len(model.filteredContentIndices) == 0 {
 		contentLines = append(contentLines, "<no items>")
 	}
-
 	for idx, contentIdx := range model.filteredContentIndices {
 		content := model.allContent[contentIdx]
 
@@ -105,7 +114,12 @@ func (model Model) View() string {
 			maybeCheckmark = "✔️"
 		}
 
-		line := fmt.Sprintf("%s  %s", maybeCheckmark, content.Name)
+		line := fmt.Sprintf(
+			"%s  %s     %s",
+			maybeCheckmark,
+			content.Name,
+			strings.Join(content.Tags, " "),
+		)
 		lineStyle := lipgloss.NewStyle().Width(model.width)
 		if model.isFocused && idx == model.cursorIdx {
 			lineStyle = lineStyle.Background(global_styles.FocusedComponentBackgroundColor).Bold(true)
@@ -118,15 +132,13 @@ func (model Model) View() string {
 		contentLines...,
 	)
 
-	footerStr := ""
-	numSelectedItems := len(model.selectedItemIndexes.GetIndices())
-	if len(model.selectedItemIndexes.GetIndices()) > 0 {
-		footerStr = fmt.Sprintf(" %d items selected", numSelectedItems)
-	}
-	style := lipgloss.NewStyle().Foreground(lipgloss.Color("#eed202"))
-	renderedFooter := style.Render(footerStr)
+	// Finally, slam everything together
+	renderedContentStr := lipgloss.NewStyle().
+		Height(model.height - lipgloss.Height(renderedFooter)).
+		Width(model.width).
+		Render(contentStr)
 
-	return lipgloss.JoinVertical(lipgloss.Left, contentStr, "", renderedFooter)
+	return lipgloss.JoinVertical(lipgloss.Left, renderedContentStr, renderedFooter)
 }
 
 func (model *Model) Focused() bool {
@@ -143,19 +155,27 @@ func (model *Model) Blur() {
 
 // Updates the name filter text that this model knows about, and does the appropriate recalculations on the cursor
 // NOTE: We have to do this because there doesn't seem to be a way to share a single textinput.Model component between two models
-func (model *Model) UpdateNameFilterText(filterText string) {
-	escapedFilterText := regexp.QuoteMeta(filterText)
-	nameSearchTerms := strings.Fields(escapedFilterText)
-	// The (?i) makes the search case-insensitive
-	regexStr := "(?i)" + strings.Join(nameSearchTerms, ".*")
-	// Okay to use MustCompile here because we quote the user's input so it should be safe
-	matcher := regexp.MustCompile(regexStr)
+func (model *Model) UpdateFilters(nameFilterText string, tagFilterText string) {
+	nameMatchPredicate := getPredicateFromSearchTerms(nameFilterText)
+	tagMatchPredicate := getPredicateFromSearchTerms(tagFilterText)
 
 	filteredContentIndices := []int{}
 	for idx, content := range model.allContent {
-		if !matcher.MatchString(content.Name) {
+		if !nameMatchPredicate(content.Name) {
 			continue
 		}
+
+		hasTagMatch := false
+		for _, tag := range content.Tags {
+			if tagMatchPredicate(tag) {
+				hasTagMatch = true
+				break
+			}
+		}
+		if !hasTagMatch {
+			continue
+		}
+
 		filteredContentIndices = append(filteredContentIndices, idx)
 	}
 
@@ -167,4 +187,31 @@ func (model Model) Resize(width int, height int) Model {
 	model.height = height
 	model.width = width
 	return model
+}
+
+func getPredicateFromSearchTerms(termsText string) func(string) bool {
+	terms := strings.Fields(termsText)
+
+	// No terms matches everything
+	if len(terms) == 0 {
+		return func(string) bool {
+			return true
+		}
+	}
+
+	// We have terms, so we need to escape them
+	escapedTerms := make([]string, 0, len(terms))
+	for _, term := range terms {
+		escapedTerms = append(escapedTerms, regexp.QuoteMeta(term))
+	}
+
+	// The (?i) makes the search case-insensitive
+	regexStr := "(?i)" + strings.Join(escapedTerms, ".*")
+
+	// Okay to use MustCompile here because we quote the user's input so it should be safe
+	matcher := regexp.MustCompile(regexStr)
+
+	return func(str string) bool {
+		return matcher.MatchString(str)
+	}
 }

@@ -3,15 +3,15 @@ package app
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/mieubrisse/cli-journal-go/components/filter_input"
 	"github.com/mieubrisse/cli-journal-go/components/filterable_content_list"
+	"github.com/mieubrisse/cli-journal-go/components/text_filter_input"
 	"github.com/mieubrisse/cli-journal-go/helpers"
 )
 
 type Mode int
 
 const (
-	padding = 1
+	padding = 2
 )
 
 var appStyle = lipgloss.NewStyle().Padding(padding)
@@ -19,8 +19,9 @@ var appStyle = lipgloss.NewStyle().Padding(padding)
 type Model struct {
 	mode Mode
 
-	// filterInput tea.Model
-	filterInput filter_input.Model
+	nameFilterInput text_filter_input.Model
+
+	tagFilterInput text_filter_input.Model
 
 	contentList filterable_content_list.Model
 
@@ -28,12 +29,17 @@ type Model struct {
 	width  int
 }
 
-func New(filterInput filter_input.Model, contentList filterable_content_list.Model) Model {
+func New(
+	nameFilterInput text_filter_input.Model,
+	tagFilterInput text_filter_input.Model,
+	contentList filterable_content_list.Model,
+) Model {
 	return Model{
-		filterInput: filterInput,
-		contentList: contentList,
-		height:      0,
-		width:       0,
+		nameFilterInput: nameFilterInput,
+		tagFilterInput:  tagFilterInput,
+		contentList:     contentList,
+		height:          0,
+		width:           0,
 	}
 }
 
@@ -54,35 +60,68 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if model.contentList.Focused() {
 			switch msg.String() {
 			case "/":
-				// TODO handle a command coming out the other side?
 				model.contentList.Blur()
 
 				// This will tell the input that it should display the cursor
-				cmd := model.filterInput.Focus()
+				cmd := model.nameFilterInput.Focus()
+
+				return model, cmd
+			case "#":
+				model.contentList.Blur()
+
+				// This will tell the input that it should display the cursor
+				cmd := model.tagFilterInput.Focus()
 
 				return model, cmd
 			case "c":
-				model.filterInput.SetValue("")
-				model.contentList.UpdateNameFilterText(model.filterInput.Value())
+				model.nameFilterInput.SetValue("")
+				model.tagFilterInput.SetValue("")
+
+				// Need to tell the content list that we changed
+				model.contentList.UpdateFilters(
+					model.nameFilterInput.Value(),
+					model.tagFilterInput.Value(),
+				)
 			}
 
 			var cmd tea.Cmd
 			model.contentList, cmd = model.contentList.Update(msg)
 			return model, cmd
 
-		} else if model.filterInput.Focused() {
+		} else if model.nameFilterInput.Focused() {
 			// Back out of filter mode
 			if msg.String() == "esc" || msg.String() == "enter" {
-				model.filterInput.Blur()
+				model.nameFilterInput.Blur()
 				model.contentList.Focus()
 				return model, nil
 			}
 
 			var cmd tea.Cmd
-			model.filterInput, cmd = model.filterInput.Update(msg)
+			model.nameFilterInput, cmd = model.nameFilterInput.Update(msg)
 
 			// Make sure to tell the content list about the new filter update
-			model.contentList.UpdateNameFilterText(model.filterInput.Value())
+			model.contentList.UpdateFilters(
+				model.nameFilterInput.Value(),
+				model.tagFilterInput.Value(),
+			)
+
+			return model, cmd
+		} else if model.tagFilterInput.Focused() {
+			// Back out of filter mode
+			if msg.String() == "esc" || msg.String() == "enter" {
+				model.tagFilterInput.Blur()
+				model.contentList.Focus()
+				return model, nil
+			}
+
+			var cmd tea.Cmd
+			model.tagFilterInput, cmd = model.tagFilterInput.Update(msg)
+
+			// Make sure to tell the content list about the new filter update
+			model.contentList.UpdateFilters(
+				model.nameFilterInput.Value(),
+				model.tagFilterInput.Value(),
+			)
 
 			return model, cmd
 		}
@@ -95,9 +134,9 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (model Model) View() string {
 	sections := []string{
-		model.filterInput.View(),
-		"",
 		model.contentList.View(),
+		model.nameFilterInput.View(),
+		model.tagFilterInput.View(),
 	}
 
 	contents := lipgloss.JoinVertical(
@@ -105,20 +144,25 @@ func (model Model) View() string {
 		sections...,
 	)
 
-	return appStyle.Render(contents)
+	return appStyle.Copy().
+		Width(model.width).
+		Height(model.height).
+		Render(contents)
 }
 
 func (model Model) Resize(width int, height int) Model {
 	model.width = width
 	model.height = height
 
-	model.filterInput = model.filterInput.Resize(helpers.GetMaxInt(0, width-2*padding))
+	componentSpaceWidth := helpers.GetMaxInt(0, model.width-2*padding)
+	componentSpaceHeight := helpers.GetMaxInt(0, model.height-2*padding)
 
-	// TODO this is a mess; figure out a better way to do this (maybe the parent keeps track of the size of the children??)
-	model.contentList = model.contentList.Resize(
-		helpers.GetMaxInt(0, width-2*padding),
-		helpers.GetMaxInt(0, height-4),
-	)
+	model.nameFilterInput = model.nameFilterInput.Resize(componentSpaceWidth, 1)
+	model.tagFilterInput = model.tagFilterInput.Resize(componentSpaceWidth, 1)
+
+	contentListHeight := helpers.GetMaxInt(0, componentSpaceHeight-model.nameFilterInput.GetHeight()-model.tagFilterInput.GetHeight())
+
+	model.contentList = model.contentList.Resize(componentSpaceWidth, contentListHeight)
 
 	return model
 }

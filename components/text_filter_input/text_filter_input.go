@@ -1,4 +1,4 @@
-package filter_input
+package text_filter_input
 
 import (
 	"github.com/charmbracelet/bubbles/textinput"
@@ -9,9 +9,14 @@ import (
 
 type Model struct {
 	input textinput.Model
+
+	width  int
+	height int
 }
 
-func New(input textinput.Model) Model {
+func New(promptText string) Model {
+	input := textinput.New()
+	input.Prompt = promptText
 	return Model{
 		input: input,
 	}
@@ -28,7 +33,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	baseStyle := lipgloss.NewStyle().Width(m.input.Width)
+	baseStyle := lipgloss.NewStyle().
+		Width(m.width).
+		Height(m.height)
 	if m.input.Focused() {
 		baseStyle = baseStyle.Background(global_styles.FocusedComponentBackgroundColor).Bold(true)
 	}
@@ -57,7 +64,16 @@ func (m Model) Value() string {
 	return m.input.Value()
 }
 
-func (m Model) Resize(width int) Model {
+func (m Model) Resize(width int, height int) Model {
+	m.width = width
 	m.input.Width = width
 	return m
+}
+
+func (m Model) GetHeight() int {
+	return m.height
+}
+
+func (m Model) GetWidth() int {
+	return m.width
 }

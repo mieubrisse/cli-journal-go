@@ -2,10 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/mieubrisse/cli-journal-go/components/app"
-	"github.com/mieubrisse/cli-journal-go/components/filter_input"
 	"github.com/mieubrisse/cli-journal-go/components/filterable_content_list"
+	"github.com/mieubrisse/cli-journal-go/components/text_filter_input"
 	"github.com/mieubrisse/cli-journal-go/data_structures/content_item"
 	"os"
 
@@ -15,25 +14,34 @@ import (
 func main() {
 	content := []content_item.ContentItem{
 		{
-			Name: "Foo",
-			Tags: nil,
+			Name: "scenarios.yml",
+			Tags: []string{
+				"general-reference/wealthdraft",
+			},
 		},
 		{
-			Name: "Bar",
-			Tags: nil,
+			Name: "projections.yml",
+			Tags: []string{
+				"project-support/wealthdraft",
+			},
 		},
 		{
-			Name: "Bang",
-			Tags: nil,
+			Name: "starlark-exploration.md",
+			Tags: []string{"project-support/starlark"},
+		},
+		{
+			Name: "journalling-about-frustrations.md",
+			Tags: []string{},
 		},
 	}
 
-	filterInput := filter_input.New(textinput.New())
+	nameFilterInput := text_filter_input.New("/")
+	tagFilterInput := text_filter_input.New("#")
 
 	contentList := filterable_content_list.New(content)
 	contentList.Focus()
 
-	topLevelModel := app.New(filterInput, contentList)
+	topLevelModel := app.New(nameFilterInput, tagFilterInput, contentList)
 
 	p := tea.NewProgram(topLevelModel, tea.WithAltScreen())
 
