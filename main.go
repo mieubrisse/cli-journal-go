@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mieubrisse/cli-journal-go/list"
 	"io"
@@ -87,7 +88,9 @@ func main() {
 		},
 	}
 
-	model := &contentList{
+	model := &appModel{
+		mode:                0,
+		filterInput:         textinput.New(),
 		content:             content,
 		cursorIdx:           0,
 		selectedItemIndexes: make(map[int]bool),
