@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/mieubrisse/cli-journal-go/content_item"
 	"github.com/muesli/termenv"
 	"regexp"
 	"strings"
@@ -26,18 +27,13 @@ var termenvOutput = termenv.DefaultOutput()
 var cursorItemGreen = termenvOutput.Color("#4e9a06")
 var selectedItemsYellow = termenvOutput.Color("#eed202")
 
-type contentItem struct {
-	name string
-	tags []string
-}
-
 type appModel struct {
 	mode Mode
 
 	// filterInput tea.Model
 	filterInput textinput.Model
 
-	content             []contentItem
+	content             []content_item.contentItem
 	cursorIdx           int
 	selectedItemIndexes map[int]bool
 
@@ -61,6 +57,15 @@ func (model appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch model.mode {
 		case navigationMode:
+			switch msg.String() {
+			case "/":
+				model.mode = filterMode
+
+				// This will tell the input that it should display the cursor
+				cmd := model.filterInput.Focus()
+				return model, cmd
+			}
+
 			return model.handleNavigationKeypress(msg)
 		case filterMode:
 			// Back out of filter mode

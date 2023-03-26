@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mieubrisse/cli-journal-go/content_item"
 	"github.com/mieubrisse/cli-journal-go/list"
 	"io"
 	"os"
@@ -73,7 +74,7 @@ func (i itemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
 }
 
 func main() {
-	content := []contentItem{
+	content := []content_item.contentItem{
 		{
 			name: "Foo",
 			tags: nil,
