@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/mieubrisse/cli-journal-go/list"
 	"os"
 
-	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
