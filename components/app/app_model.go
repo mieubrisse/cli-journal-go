@@ -11,7 +11,7 @@ import (
 type Mode int
 
 const (
-	padding = 2
+	padding = 1
 )
 
 var appStyle = lipgloss.NewStyle().Padding(padding)
@@ -139,10 +139,7 @@ func (model Model) View() string {
 		model.tagFilterInput.View(),
 	}
 
-	contents := lipgloss.JoinVertical(
-		lipgloss.Left,
-		sections...,
-	)
+	contents := lipgloss.JoinVertical(lipgloss.Left, sections...)
 
 	return appStyle.Copy().
 		Width(model.width).
@@ -160,7 +157,10 @@ func (model Model) Resize(width int, height int) Model {
 	model.nameFilterInput = model.nameFilterInput.Resize(componentSpaceWidth, 1)
 	model.tagFilterInput = model.tagFilterInput.Resize(componentSpaceWidth, 1)
 
-	contentListHeight := helpers.GetMaxInt(0, componentSpaceHeight-model.nameFilterInput.GetHeight()-model.tagFilterInput.GetHeight())
+	contentListHeight := helpers.GetMaxInt(
+		0,
+		componentSpaceHeight-model.nameFilterInput.GetHeight()-model.tagFilterInput.GetHeight(),
+	)
 
 	model.contentList = model.contentList.Resize(componentSpaceWidth, contentListHeight)
 

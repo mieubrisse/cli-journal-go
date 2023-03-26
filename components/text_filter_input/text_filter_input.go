@@ -67,6 +67,7 @@ func (m Model) Value() string {
 func (m Model) Resize(width int, height int) Model {
 	m.width = width
 	m.input.Width = width
+	m.height = height
 	return m
 }
 

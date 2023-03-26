@@ -87,25 +87,25 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (model Model) View() string {
-	componentStyle := lipgloss.NewStyle()
-	if model.isFocused {
-		componentStyle = componentStyle.Background(global_styles.FocusedComponentBackgroundColor)
-	}
+	baseStyle := lipgloss.NewStyle().Width(model.width)
 
-	// First calculate the footer, so we know its height so we know how big to make the content
+	// First calculate the footer, so we can get its height later
 	footerStr := ""
 	numSelectedItems := len(model.selectedItemIndexes.GetIndices())
 	if len(model.selectedItemIndexes.GetIndices()) > 0 {
 		footerStr = fmt.Sprintf(" %d items selected", numSelectedItems)
 	}
-	style := lipgloss.NewStyle().Foreground(lipgloss.Color("#eed202"))
-	renderedFooter := style.Render(footerStr)
+	style := baseStyle.Copy().Foreground(lipgloss.Color("#eed202")).Align(lipgloss.Center)
+	finalFooter := style.Render(footerStr)
 
-	// Now calculate content
-	contentLines := []string{}
+	// Calculate content
+	lines := []string{}
 	if len(model.filteredContentIndices) == 0 {
-		contentLines = append(contentLines, "<no items>")
+		noItemsLine := baseStyle.Copy().Faint(true).Align(lipgloss.Center).Render("No items")
+		lines = []string{noItemsLine}
+
 	}
+
 	for idx, contentIdx := range model.filteredContentIndices {
 		content := model.allContent[contentIdx]
 
@@ -120,49 +120,38 @@ func (model Model) View() string {
 			content.Name,
 			strings.Join(content.Tags, " "),
 		)
-		lineStyle := lipgloss.NewStyle().Width(model.width)
+		lineStyle := baseStyle.Copy()
 		if model.isFocused && idx == model.cursorIdx {
 			lineStyle = lineStyle.Background(global_styles.FocusedComponentBackgroundColor).Bold(true)
 		}
 		renderedLine := lineStyle.Render(line)
-		contentLines = append(contentLines, renderedLine)
+		lines = append(lines, renderedLine)
 	}
 
-	contentStr := lipgloss.JoinVertical(
+	contentLinesStr := lipgloss.JoinVertical(lipgloss.Left, lines...)
+	contentHeight := model.height - lipgloss.Height(footerStr)
+	finalContent := baseStyle.Copy().Height(contentHeight).Render(contentLinesStr)
+
+	return lipgloss.JoinVertical(
 		lipgloss.Left,
-		contentLines...,
+		finalContent,
+		finalFooter,
 	)
-
-	// Finally, slam everything together
-	renderedContentStr := lipgloss.NewStyle().
-		// Height(model.height - lipgloss.Height(renderedFooter)).
-		Height(model.height - 2).
-		Width(model.width).
-		Render(contentStr)
-
-	return lipgloss.JoinVertical(lipgloss.Left, renderedContentStr, renderedFooter)
 }
 
 // Updates the name filter text that this model knows about, and does the appropriate recalculations on the cursor
 // NOTE: We have to do this because there doesn't seem to be a way to share a single textinput.Model component between two models
 func (model *Model) UpdateFilters(nameFilterText string, tagFilterText string) {
-	nameMatchPredicate := getPredicateFromSearchTerms(nameFilterText)
-	tagMatchPredicate := getPredicateFromSearchTerms(tagFilterText)
+	nameMatchPredicate := getNameMatchPredicate(nameFilterText)
+	tagMatchPredicate := getTagMatchPredicate(tagFilterText)
 
 	filteredContentIndices := []int{}
 	for idx, content := range model.allContent {
-		if !nameMatchPredicate(content.Name) {
+		if !nameMatchPredicate(content) {
 			continue
 		}
 
-		hasTagMatch := false
-		for _, tag := range content.Tags {
-			if tagMatchPredicate(tag) {
-				hasTagMatch = true
-				break
-			}
-		}
-		if !hasTagMatch {
+		if !tagMatchPredicate(content) {
 			continue
 		}
 
@@ -186,21 +175,57 @@ func (model *Model) Blur() {
 }
 
 func (model Model) Resize(width int, height int) Model {
-	model.height = height
 	model.width = width
+	model.height = height
 	return model
 }
 
-func getPredicateFromSearchTerms(termsText string) func(string) bool {
-	terms := strings.Fields(termsText)
+// ====================================================================================================
+//
+//	PRIVATE HELPER FUNCTIONS
+//
+// ====================================================================================================
+func getNameMatchPredicate(filterText string) func(item content_item.ContentItem) bool {
+	terms := strings.Fields(filterText)
 
-	// No terms matches everything
+	// No terms == match everything
 	if len(terms) == 0 {
-		return func(string) bool {
+		return func(item content_item.ContentItem) bool {
 			return true
 		}
 	}
 
+	matcher := getFuzzyMatcherFromTerms(terms)
+
+	return func(item content_item.ContentItem) bool {
+		return matcher.MatchString(item.Name)
+	}
+}
+
+func getTagMatchPredicate(filterText string) func(item content_item.ContentItem) bool {
+	terms := strings.Fields(filterText)
+
+	// No terms == match everything
+	if len(terms) == 0 {
+		return func(item content_item.ContentItem) bool {
+			return true
+		}
+	}
+
+	matcher := getFuzzyMatcherFromTerms(terms)
+
+	// There's at least one search term now, so there must be at least one matching tag
+	return func(item content_item.ContentItem) bool {
+		for _, tag := range item.Tags {
+			if matcher.MatchString(tag) {
+				return true
+			}
+		}
+		return false
+	}
+}
+
+func getFuzzyMatcherFromTerms(terms []string) *regexp.Regexp {
 	// We have terms, so we need to escape them
 	escapedTerms := make([]string, 0, len(terms))
 	for _, term := range terms {
@@ -211,9 +236,5 @@ func getPredicateFromSearchTerms(termsText string) func(string) bool {
 	regexStr := "(?i)" + strings.Join(escapedTerms, ".*")
 
 	// Okay to use MustCompile here because we quote the user's input so it should be safe
-	matcher := regexp.MustCompile(regexStr)
-
-	return func(str string) bool {
-		return matcher.MatchString(str)
-	}
+	return regexp.MustCompile(regexStr)
 }
