@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/mieubrisse/cli-journal-go/content_item"
-	"github.com/mieubrisse/cli-journal-go/filterable_content_list"
+	"github.com/mieubrisse/cli-journal-go/components/app"
+	"github.com/mieubrisse/cli-journal-go/components/filter_input"
+	"github.com/mieubrisse/cli-journal-go/components/filterable_content_list"
+	"github.com/mieubrisse/cli-journal-go/data_structures/content_item"
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -26,17 +28,12 @@ func main() {
 		},
 	}
 
-	filterInput := textinput.New()
+	filterInput := filter_input.New(textinput.New())
 
 	contentList := filterable_content_list.New(content)
+	contentList.Focus()
 
-	topLevelModel := &appModel{
-		mode:        navigationMode,
-		filterInput: filterInput,
-		contentList: contentList,
-		height:      0,
-		width:       0,
-	}
+	topLevelModel := app.New(filterInput, contentList)
 
 	p := tea.NewProgram(topLevelModel, tea.WithAltScreen())
 

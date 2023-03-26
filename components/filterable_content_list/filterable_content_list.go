@@ -4,9 +4,9 @@ import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/mieubrisse/cli-journal-go/content_item"
+	"github.com/mieubrisse/cli-journal-go/data_structures/content_item"
+	"github.com/mieubrisse/cli-journal-go/data_structures/selected_item_index_set"
 	"github.com/mieubrisse/cli-journal-go/global_styles"
-	"github.com/mieubrisse/cli-journal-go/selected_item_index_set"
 	"regexp"
 	"strings"
 )
@@ -26,6 +26,9 @@ type Model struct {
 	cursorIdx int
 
 	selectedItemIndexes *selected_item_index_set.SelectedItemIndexSet
+
+	height int
+	width  int
 }
 
 // TODO replace content with contentProvider
@@ -75,16 +78,23 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 			return model, nil
 		}
+	case tea.WindowSizeMsg:
+		model.width = msg.Width
+		model.height = msg.Height
 	}
 
 	return model, nil
 }
 
 func (model Model) View() string {
-	resultBuilder := strings.Builder{}
+	componentStyle := lipgloss.NewStyle()
+	if model.isFocused {
+		componentStyle = componentStyle.Background(global_styles.FocusedComponentBackgroundColor)
+	}
 
+	contentLines := []string{}
 	if len(model.filteredContentIndices) == 0 {
-		resultBuilder.WriteString("<no items>")
+		contentLines = append(contentLines, "<no items>")
 	}
 
 	for idx, contentIdx := range model.filteredContentIndices {
@@ -95,17 +105,18 @@ func (model Model) View() string {
 			maybeCheckmark = "✔️"
 		}
 
-		nameStyle := lipgloss.NewStyle()
+		line := fmt.Sprintf("%s  %s", maybeCheckmark, content.Name)
+		lineStyle := lipgloss.NewStyle().Width(model.width)
 		if model.isFocused && idx == model.cursorIdx {
-			// TODO make color a constant
-			nameStyle = nameStyle.Bold(true).Background(global_styles.FocusedComponentBackgroundColor)
+			lineStyle = lineStyle.Background(global_styles.FocusedComponentBackgroundColor).Bold(true)
 		}
-		renderedName := nameStyle.Render(content.Name)
-
-		value := fmt.Sprintf(" %s  %s", maybeCheckmark, renderedName)
-		resultBuilder.WriteString(value + "\n")
+		renderedLine := lineStyle.Render(line)
+		contentLines = append(contentLines, renderedLine)
 	}
-	resultBuilder.WriteString("\n")
+	contentStr := lipgloss.JoinVertical(
+		lipgloss.Left,
+		contentLines...,
+	)
 
 	footerStr := ""
 	numSelectedItems := len(model.selectedItemIndexes.GetIndices())
@@ -113,10 +124,13 @@ func (model Model) View() string {
 		footerStr = fmt.Sprintf(" %d items selected", numSelectedItems)
 	}
 	style := lipgloss.NewStyle().Foreground(lipgloss.Color("#eed202"))
-	renderedString := style.Render(footerStr)
-	resultBuilder.WriteString(renderedString + "\n")
+	renderedFooter := style.Render(footerStr)
 
-	return resultBuilder.String()
+	return lipgloss.JoinVertical(lipgloss.Left, contentStr, "", renderedFooter)
+}
+
+func (model *Model) Focused() bool {
+	return model.isFocused
 }
 
 func (model *Model) Focus() {
@@ -147,4 +161,10 @@ func (model *Model) UpdateNameFilterText(filterText string) {
 
 	model.filteredContentIndices = filteredContentIndices
 	model.cursorIdx = 0
+}
+
+func (model Model) Resize(width int, height int) Model {
+	model.height = height
+	model.width = width
+	return model
 }

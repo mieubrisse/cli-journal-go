@@ -1,33 +1,26 @@
-package main
+package app
 
 import (
-	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/mieubrisse/cli-journal-go/filterable_content_list"
-	"github.com/mieubrisse/cli-journal-go/global_styles"
+	"github.com/mieubrisse/cli-journal-go/components/filter_input"
+	"github.com/mieubrisse/cli-journal-go/components/filterable_content_list"
+	"github.com/mieubrisse/cli-journal-go/helpers"
 )
 
 type Mode int
 
 const (
-	navigationMode Mode = iota
-
-	filterMode Mode = iota
-
-	// TODO add mode
-
-	numListElems = 20
+	padding = 1
 )
 
-var appStyle = lipgloss.NewStyle().Padding(1)
-var componentStyle = lipgloss.NewStyle().Margin(2)
+var appStyle = lipgloss.NewStyle().Padding(padding)
 
-type appModel struct {
+type Model struct {
 	mode Mode
 
 	// filterInput tea.Model
-	filterInput textinput.Model
+	filterInput filter_input.Model
 
 	contentList filterable_content_list.Model
 
@@ -35,13 +28,22 @@ type appModel struct {
 	width  int
 }
 
-func (model appModel) Init() tea.Cmd {
+func New(filterInput filter_input.Model, contentList filterable_content_list.Model) Model {
+	return Model{
+		filterInput: filterInput,
+		contentList: contentList,
+		height:      0,
+		width:       0,
+	}
+}
+
+func (model Model) Init() tea.Cmd {
 	return nil
 }
 
 // NOTE: This returns a model because BubbleTea expects models to be passed by-value, so the way to "update" the model
 // is to return a new instance of it
-func (model appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -49,17 +51,15 @@ func (model appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return model, tea.Quit
 		}
 
-		switch model.mode {
-		case navigationMode:
+		if model.contentList.Focused() {
 			switch msg.String() {
 			case "/":
-				model.mode = filterMode
-
 				// TODO handle a command coming out the other side?
 				model.contentList.Blur()
 
 				// This will tell the input that it should display the cursor
 				cmd := model.filterInput.Focus()
+
 				return model, cmd
 			case "c":
 				model.filterInput.SetValue("")
@@ -69,12 +69,12 @@ func (model appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			var cmd tea.Cmd
 			model.contentList, cmd = model.contentList.Update(msg)
 			return model, cmd
-		case filterMode:
+
+		} else if model.filterInput.Focused() {
 			// Back out of filter mode
 			if msg.String() == "esc" || msg.String() == "enter" {
 				model.filterInput.Blur()
 				model.contentList.Focus()
-				model.mode = navigationMode
 				return model, nil
 			}
 
@@ -87,36 +87,38 @@ func (model appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return model, cmd
 		}
 	case tea.WindowSizeMsg:
-		// TODO probably, pass this downwards
-		model.height = msg.Height
-		model.width = msg.Width
+		return model.Resize(msg.Width, msg.Height), nil
 	}
 
 	return model, nil
 }
 
-func (model appModel) View() string {
-	sections := []string{}
-
-	// Ideally, the textinput would have the ability to mutate background color based on focus state, but it doesn't
-	// so we have to hack it in here
-	filterInputTextStyle := lipgloss.NewStyle()
-
-	if model.mode == filterMode {
-		filterInputTextStyle = filterInputTextStyle.
-			Bold(true).
-			Background(global_styles.FocusedComponentBackgroundColor)
-	}
-	model.filterInput.TextStyle = filterInputTextStyle
-	model.filterInput.PromptStyle = filterInputTextStyle
-	sections = append(sections, model.filterInput.View())
-
-	sections = append(sections, model.contentList.View())
-
-	contents := componentStyle.Render(
+func (model Model) View() string {
+	sections := []string{
 		model.filterInput.View(),
+		"",
 		model.contentList.View(),
+	}
+
+	contents := lipgloss.JoinVertical(
+		lipgloss.Left,
+		sections...,
 	)
 
 	return appStyle.Render(contents)
+}
+
+func (model Model) Resize(width int, height int) Model {
+	model.width = width
+	model.height = height
+
+	model.filterInput = model.filterInput.Resize(helpers.GetMaxInt(0, width-2*padding))
+
+	// TODO this is a mess; figure out a better way to do this (maybe the parent keeps track of the size of the children??)
+	model.contentList = model.contentList.Resize(
+		helpers.GetMaxInt(0, width-2*padding),
+		helpers.GetMaxInt(0, height-4),
+	)
+
+	return model
 }
