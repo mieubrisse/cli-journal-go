@@ -78,9 +78,6 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 			return model, nil
 		}
-	case tea.WindowSizeMsg:
-		model.width = msg.Width
-		model.height = msg.Height
 	}
 
 	return model, nil
