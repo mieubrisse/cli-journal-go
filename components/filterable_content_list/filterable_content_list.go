@@ -127,6 +127,7 @@ func (model Model) View() string {
 		renderedLine := lineStyle.Render(line)
 		contentLines = append(contentLines, renderedLine)
 	}
+
 	contentStr := lipgloss.JoinVertical(
 		lipgloss.Left,
 		contentLines...,
@@ -134,23 +135,12 @@ func (model Model) View() string {
 
 	// Finally, slam everything together
 	renderedContentStr := lipgloss.NewStyle().
-		Height(model.height - lipgloss.Height(renderedFooter)).
+		// Height(model.height - lipgloss.Height(renderedFooter)).
+		Height(model.height - 2).
 		Width(model.width).
 		Render(contentStr)
 
 	return lipgloss.JoinVertical(lipgloss.Left, renderedContentStr, renderedFooter)
-}
-
-func (model *Model) Focused() bool {
-	return model.isFocused
-}
-
-func (model *Model) Focus() {
-	model.isFocused = true
-}
-
-func (model *Model) Blur() {
-	model.isFocused = false
 }
 
 // Updates the name filter text that this model knows about, and does the appropriate recalculations on the cursor
@@ -181,6 +171,18 @@ func (model *Model) UpdateFilters(nameFilterText string, tagFilterText string) {
 
 	model.filteredContentIndices = filteredContentIndices
 	model.cursorIdx = 0
+}
+
+func (model *Model) Focused() bool {
+	return model.isFocused
+}
+
+func (model *Model) Focus() {
+	model.isFocused = true
+}
+
+func (model *Model) Blur() {
+	model.isFocused = false
 }
 
 func (model Model) Resize(width int, height int) Model {
