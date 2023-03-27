@@ -7,36 +7,42 @@ import (
 	"github.com/mieubrisse/cli-journal-go/components/text_filter_input"
 	"github.com/mieubrisse/cli-journal-go/data_structures/content_item"
 	"os"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 func main() {
+	// TODO set up more items and deal with pagination
 	content := []content_item.ContentItem{
 		{
-			Name: "scenarios.yml",
+			Timestamp: time.Now(),
+			Name:      "scenarios.yml",
 			Tags: []string{
 				"general-reference/wealthdraft",
 			},
 		},
 		{
-			Name: "projections.yml",
+			Timestamp: time.Now(),
+			Name:      "projections.yml",
 			Tags: []string{
 				"project-support/wealthdraft",
 			},
 		},
 		{
-			Name: "starlark-exploration.md",
-			Tags: []string{"project-support/starlark"},
+			Timestamp: time.Now(),
+			Name:      "starlark-exploration.md",
+			Tags:      []string{"project-support/starlark"},
 		},
 		{
-			Name: "journalling-about-frustrations.md",
-			Tags: []string{},
+			Timestamp: time.Now(),
+			Name:      "journalling-about-frustrations.md",
+			Tags:      []string{},
 		},
 	}
 
-	nameFilterInput := text_filter_input.New("/ ")
-	tagFilterInput := text_filter_input.New("# ")
+	nameFilterInput := text_filter_input.New("🔎 ")
+	tagFilterInput := text_filter_input.New("🏷️  ")
 
 	contentList := filterable_content_list.New(content)
 	contentList.Focus()

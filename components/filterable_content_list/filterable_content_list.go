@@ -7,13 +7,50 @@ import (
 	"github.com/mieubrisse/cli-journal-go/data_structures/content_item"
 	"github.com/mieubrisse/cli-journal-go/data_structures/selected_item_index_set"
 	"github.com/mieubrisse/cli-journal-go/global_styles"
+	"github.com/mieubrisse/cli-journal-go/helpers"
 	"regexp"
 	"strings"
 )
 
+type componentSize int
+
 const (
-	tagsTextColor = lipgloss.Color("#E0B0FF")
+	contentTimestampFormat = "2006-01-02 15:04:05"
+
+	checkmarkChar = '•'
+
+	// Used when a line is too small
+	continuationChar = '…'
+
+	maxNameWidth = 45
+
+	minimumNameAndTagWidth = 5
+
+	wide componentSize = iota
+	medium
+	narrow
+	sliver
 )
+
+// Minimum width, in characters, for the component to be classed as each size
+var componentSizeThresholds = map[componentSize]int{
+	wide:   150,
+	medium: 120,
+	narrow: 80,
+	sliver: 0,
+}
+var checkmarkWidthsByComponentSize = map[componentSize]int{
+	wide:   5,
+	medium: 4,
+	narrow: 3,
+	sliver: 2,
+}
+var timestampWidthsByComponentSize = map[componentSize]int{
+	wide:   len(contentTimestampFormat) + 4,
+	medium: len(contentTimestampFormat) + 2,
+	narrow: 0,
+	sliver: 0,
+}
 
 // This
 type Model struct {
@@ -91,53 +128,45 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (model Model) View() string {
-	baseStyle := lipgloss.NewStyle().Width(model.width)
-
 	// First calculate the footer, so we can get its height later
 	footerStr := ""
 	numSelectedItems := len(model.selectedItemIndexes.GetIndices())
-	if len(model.selectedItemIndexes.GetIndices()) > 0 {
-		footerStr = fmt.Sprintf(" %d items selected", numSelectedItems)
+	if numSelectedItems > 0 {
+		numberStr := fmt.Sprintf("%d", numSelectedItems)
+		numberStr = lipgloss.NewStyle().Foreground(global_styles.Orange).Render(numberStr)
+
+		textStr := lipgloss.NewStyle().Foreground(global_styles.White).Render(" items selected")
+
+		footerStr = numberStr + textStr
 	}
-	style := baseStyle.Copy().Foreground(lipgloss.Color("#eed202")).Align(lipgloss.Center)
+	style := lipgloss.NewStyle().
+		Width(model.width).
+		Align(lipgloss.Center)
 	finalFooter := style.Render(footerStr)
 
 	// Calculate content
 	lines := []string{}
 	if len(model.filteredContentIndices) == 0 {
-		noItemsLine := baseStyle.Copy().Faint(true).Align(lipgloss.Center).Render("No items")
+		noItemsLine := lipgloss.NewStyle().
+			Width(model.width).
+			Faint(true).
+			Align(lipgloss.Center).
+			Render("No items")
 		lines = []string{noItemsLine}
-
 	}
 
 	for idx, contentIdx := range model.filteredContentIndices {
 		content := model.allContent[contentIdx]
+		isContentHighlighted := idx == model.cursorIdx
+		isContentSelected := model.selectedItemIndexes.Contains(contentIdx)
 
-		maybeCheckmark := " "
-		if model.selectedItemIndexes.Contains(idx) {
-			maybeCheckmark = "✔️"
-		}
-
-		tags := strings.Join(content.Tags, " ")
-		joinedTags := lipgloss.NewStyle().Foreground(tagsTextColor).Render(tags)
-
-		line := fmt.Sprintf(
-			"%s  %s     %s",
-			maybeCheckmark,
-			content.Name,
-			joinedTags,
-		)
-		lineStyle := baseStyle.Copy()
-		if model.isFocused && idx == model.cursorIdx {
-			lineStyle = lineStyle.Background(global_styles.FocusedComponentBackgroundColor).Bold(true)
-		}
-		renderedLine := lineStyle.Render(line)
-		lines = append(lines, renderedLine)
+		line := model.renderContentLine(content, isContentHighlighted, isContentSelected)
+		lines = append(lines, line)
 	}
 
-	contentLinesStr := lipgloss.JoinVertical(lipgloss.Left, lines...)
+	contentLinesStr := strings.Join(lines, "\n")
 	contentHeight := model.height - lipgloss.Height(footerStr)
-	finalContent := baseStyle.Copy().Height(contentHeight).Render(contentLinesStr)
+	finalContent := lipgloss.NewStyle().Height(contentHeight).Render(contentLinesStr)
 
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
@@ -165,8 +194,24 @@ func (model *Model) UpdateFilters(nameFilterText string, tagFilterText string) {
 		filteredContentIndices = append(filteredContentIndices, idx)
 	}
 
+	// In the special case where we have exactly the same results, we can keep the cursor index
+	newCursorIdx := 0
+	if len(filteredContentIndices) == len(model.filteredContentIndices) {
+		keepCursorIdx := true
+		for idx, contentIdx := range filteredContentIndices {
+			if model.filteredContentIndices[idx] != contentIdx {
+				keepCursorIdx = false
+				break
+			}
+		}
+
+		if keepCursorIdx {
+			newCursorIdx = model.cursorIdx
+		}
+	}
+	model.cursorIdx = newCursorIdx
+
 	model.filteredContentIndices = filteredContentIndices
-	model.cursorIdx = 0
 }
 
 func (model *Model) Focused() bool {
@@ -244,4 +289,108 @@ func getFuzzyMatcherFromTerms(terms []string) *regexp.Regexp {
 
 	// Okay to use MustCompile here because we quote the user's input so it should be safe
 	return regexp.MustCompile(regexStr)
+}
+
+func (model Model) renderContentLine(content content_item.ContentItem, isContentHighlighted bool, isContentSelected bool) string {
+	baseLineStyle := lipgloss.NewStyle()
+	if model.isFocused && isContentHighlighted {
+		baseLineStyle = baseLineStyle.Background(global_styles.FocusedComponentBackgroundColor).Bold(true)
+	}
+
+	// Calculate the widths for the various components
+	biggestThresholdPassed := sliver
+	for trialComponentSize, threshold := range componentSizeThresholds {
+		if model.width > threshold && threshold > componentSizeThresholds[biggestThresholdPassed] {
+			biggestThresholdPassed = trialComponentSize
+		}
+	}
+	actualComponentSize := biggestThresholdPassed
+	checkmarkWidth, found := checkmarkWidthsByComponentSize[actualComponentSize]
+	if !found {
+		panic("No checkmark width for terminal size")
+	}
+	timestampWidth, found := timestampWidthsByComponentSize[actualComponentSize]
+	if !found {
+		panic("No timestamp width for terminal size")
+	}
+
+	widthRemaining := helpers.GetMaxInt(0, model.width-checkmarkWidth-timestampWidth)
+	// Safety valve: if we don't have at least 10 characters, don't even bother
+
+	nameWidth := helpers.GetMinInt(
+		maxNameWidth,
+		int(0.6*float64(widthRemaining)),
+	)
+	tagsWidth := helpers.GetMaxInt(0, widthRemaining-nameWidth)
+
+	// Checkmark string
+	checkmarkStr := ""
+	if isContentSelected {
+		checkmarkStr = string(checkmarkChar)
+	}
+	checkmarkStr = baseLineStyle.Copy().
+		Foreground(global_styles.Orange).
+		Width(checkmarkWidth).
+		AlignHorizontal(lipgloss.Center).
+		Render(checkmarkStr)
+
+	// Timestamp (disabled if too small)
+	timestampStr := ""
+	if timestampWidth > 0 {
+		timestampStr = content.Timestamp.Format(contentTimestampFormat)
+		timestampStr = baseLineStyle.Copy().
+			Foreground(global_styles.Cyan).
+			Width(timestampWidth).
+			AlignHorizontal(lipgloss.Left).
+			Render(timestampStr)
+	}
+
+	// Name
+	nameStr := ""
+	if nameWidth > minimumNameAndTagWidth {
+		nameStr = content.Name
+		nameLen := len(nameStr)
+		if nameLen > nameWidth-1 {
+			nameStr = nameStr[:nameWidth-2] + string(continuationChar)
+		}
+		nameStr = baseLineStyle.Copy().
+			Foreground(global_styles.White).
+			Width(nameWidth).
+			AlignHorizontal(lipgloss.Left).
+			Render(nameStr)
+	}
+
+	tagsStr := ""
+	if tagsWidth > minimumNameAndTagWidth {
+		tagsStr = strings.Join(content.Tags, " ")
+		tagsLen := len(tagsStr)
+		if tagsLen > tagsWidth-1 {
+			tagsStr = tagsStr[:tagsWidth-2] + string(continuationChar)
+		}
+		tagsStr = baseLineStyle.Copy().
+			Foreground(global_styles.Red).
+			Width(tagsWidth).
+			AlignHorizontal(lipgloss.Left).
+			Render(tagsStr)
+	}
+
+	line := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		checkmarkStr,
+		timestampStr,
+		nameStr,
+		tagsStr,
+	)
+	/*
+		line := fmt.Sprintf(
+			"%s  %s %s     %s",
+			maybeCheckmark,
+			timestampStr,
+			content.Name,
+			joinedTags,
+		)
+
+	*/
+
+	return baseLineStyle.Copy().Width(model.width).Render(line)
 }

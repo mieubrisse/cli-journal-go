@@ -10,12 +10,6 @@ import (
 
 type Mode int
 
-const (
-	padding = 1
-)
-
-var appStyle = lipgloss.NewStyle().Padding(padding)
-
 type Model struct {
 	mode Mode
 
@@ -27,6 +21,17 @@ type Model struct {
 
 	height int
 	width  int
+}
+
+var horizontalPadThresholds = map[int]int{
+	0:   0,
+	60:  1,
+	120: 2,
+}
+
+var verticalPadThresholds = map[int]int{
+	0:  0,
+	40: 1,
 }
 
 func New(
@@ -73,7 +78,8 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmd := model.tagFilterInput.Focus()
 
 				return model, cmd
-			case "c":
+			case "esc":
+				// Clear all filters
 				model.nameFilterInput.SetValue("")
 				model.tagFilterInput.SetValue("")
 
@@ -89,8 +95,22 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return model, cmd
 
 		} else if model.nameFilterInput.Focused() {
-			// Back out of filter mode
-			if msg.String() == "esc" || msg.String() == "enter" {
+			switch msg.String() {
+			case "esc":
+				// User is clearing the filter
+
+				// Revert to the previous filter value, and update the content list
+				model.nameFilterInput.SetValue("")
+				model.contentList.UpdateFilters(
+					model.nameFilterInput.Value(),
+					model.tagFilterInput.Value(),
+				)
+
+				model.nameFilterInput.Blur()
+				model.contentList.Focus()
+				return model, nil
+			case "enter":
+				// User is exiting the filtering mode, persisting their changes
 				model.nameFilterInput.Blur()
 				model.contentList.Focus()
 				return model, nil
@@ -107,8 +127,22 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			return model, cmd
 		} else if model.tagFilterInput.Focused() {
-			// Back out of filter mode
-			if msg.String() == "esc" || msg.String() == "enter" {
+			switch msg.String() {
+			case "esc":
+				// User is clearing the filter
+
+				// Revert to the previous filter value, and update the content list
+				model.tagFilterInput.SetValue("")
+				model.contentList.UpdateFilters(
+					model.tagFilterInput.Value(),
+					model.tagFilterInput.Value(),
+				)
+
+				model.tagFilterInput.Blur()
+				model.contentList.Focus()
+				return model, nil
+			case "enter":
+				// User is exiting the filtering mode, persisting their changes
 				model.tagFilterInput.Blur()
 				model.contentList.Focus()
 				return model, nil
@@ -141,9 +175,11 @@ func (model Model) View() string {
 
 	contents := lipgloss.JoinVertical(lipgloss.Left, sections...)
 
-	return appStyle.Copy().
+	horizontalPad, verticalPad := getPadsForSize(model.width, model.height)
+	return lipgloss.NewStyle().
 		Width(model.width).
 		Height(model.height).
+		Padding(verticalPad, horizontalPad, verticalPad, horizontalPad).
 		Render(contents)
 }
 
@@ -151,8 +187,9 @@ func (model Model) Resize(width int, height int) Model {
 	model.width = width
 	model.height = height
 
-	componentSpaceWidth := helpers.GetMaxInt(0, model.width-2*padding)
-	componentSpaceHeight := helpers.GetMaxInt(0, model.height-2*padding)
+	horizontalPad, verticalPad := getPadsForSize(model.width, model.height)
+	componentSpaceWidth := helpers.GetMaxInt(0, model.width-2*horizontalPad)
+	componentSpaceHeight := helpers.GetMaxInt(0, model.height-2*verticalPad)
 
 	model.nameFilterInput = model.nameFilterInput.Resize(componentSpaceWidth, 1)
 	model.tagFilterInput = model.tagFilterInput.Resize(componentSpaceWidth, 1)
@@ -165,4 +202,23 @@ func (model Model) Resize(width int, height int) Model {
 	model.contentList = model.contentList.Resize(componentSpaceWidth, contentListHeight)
 
 	return model
+}
+
+func getPadsForSize(width int, height int) (int, int) {
+	actualHorizontalPad := 0
+	for threshold, trialHorizontalPad := range horizontalPadThresholds {
+		if width > threshold && actualHorizontalPad < trialHorizontalPad {
+			actualHorizontalPad = trialHorizontalPad
+		}
+
+	}
+
+	actualVerticalPad := 0
+	for threshold, trialVerticalPad := range verticalPadThresholds {
+		if height > threshold && actualVerticalPad < trialVerticalPad {
+			actualVerticalPad = trialVerticalPad
+		}
+	}
+
+	return actualHorizontalPad, actualVerticalPad
 }

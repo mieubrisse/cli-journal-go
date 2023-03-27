@@ -1,6 +1,9 @@
 package content_item
 
+import "time"
+
 type ContentItem struct {
-	Name string
-	Tags []string
+	Timestamp time.Time
+	Name      string
+	Tags      []string
 }
