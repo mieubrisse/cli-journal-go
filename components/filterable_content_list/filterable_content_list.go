@@ -57,6 +57,10 @@ type Model struct {
 	// Whether to highlight the cursor line or not
 	isFocused bool
 
+	// TODO the fact that I need to store this here, duplicated from the actual forms, is probably a sign I'm doing something wrong
+	nameFilterText string
+	tagFilterText  string
+
 	// All content that exists
 	allContent []content_item.ContentItem
 
@@ -175,11 +179,53 @@ func (model Model) View() string {
 	)
 }
 
-// Updates the name filter text that this model knows about, and does the appropriate recalculations on the cursor
-// NOTE: We have to do this because there doesn't seem to be a way to share a single textinput.Model component between two models
-func (model *Model) SetFilterTexts(nameFilterText string, tagFilterText string) {
-	nameMatchPredicate := getNameMatchPredicate(nameFilterText)
-	tagMatchPredicate := getTagMatchPredicate(tagFilterText)
+func (model Model) SetNameFilterText(text string) Model {
+	model.nameFilterText = text
+	model = model.recalculateView()
+	return model
+}
+
+func (model Model) SetTagFilterText(text string) Model {
+	model.tagFilterText = text
+	model = model.recalculateView()
+	return model
+}
+
+func (model Model) AddItem(content content_item.ContentItem) Model {
+	model.allContent = append(model.allContent, content)
+	model = model.recalculateView()
+	return model
+}
+
+func (model Model) Focused() bool {
+	return model.isFocused
+}
+
+// TODO return a model?
+func (model Model) Focus() Model {
+	model.isFocused = true
+	return model
+}
+
+func (model Model) Blur() Model {
+	model.isFocused = false
+	return model
+}
+
+func (model Model) Resize(width int, height int) Model {
+	model.width = width
+	model.height = height
+	return model
+}
+
+// ====================================================================================================
+//
+//	PRIVATE HELPER FUNCTIONS
+//
+// ====================================================================================================
+func (model Model) recalculateView() Model {
+	nameMatchPredicate := getNameMatchPredicate(model.nameFilterText)
+	tagMatchPredicate := getTagMatchPredicate(model.tagFilterText)
 
 	filteredContentIndices := []int{}
 	for idx, content := range model.allContent {
@@ -212,39 +258,8 @@ func (model *Model) SetFilterTexts(nameFilterText string, tagFilterText string) 
 	model.cursorIdx = newCursorIdx
 
 	model.filteredContentIndices = filteredContentIndices
-}
 
-func (model Model) AddItem(content content_item.ContentItem) Model {
-	model.allContent = append(model.allContent, content)
 	return model
-}
-
-func (model *Model) Focused() bool {
-	return model.isFocused
-}
-
-// TODO return a model?
-func (model *Model) Focus() {
-	model.isFocused = true
-}
-
-func (model *Model) Blur() {
-	model.isFocused = false
-}
-
-func (model Model) Resize(width int, height int) Model {
-	model.width = width
-	model.height = height
-	return model
-}
-
-// ====================================================================================================
-//
-//	PRIVATE HELPER FUNCTIONS
-//
-// ====================================================================================================
-func recalculateView() {
-
 }
 
 func getNameMatchPredicate(filterText string) func(item content_item.ContentItem) bool {

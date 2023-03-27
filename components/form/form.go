@@ -63,14 +63,18 @@ func (model Model) View() string {
 		Render(content)
 }
 
-func (model *Model) Focus() tea.Cmd {
+func (model Model) Focus() (Model, tea.Cmd) {
 	model.isFocused = true
-	return model.input.Focus()
+
+	var cmd tea.Cmd
+	model.input, cmd = model.input.Focus()
+	return model, cmd
 }
 
-func (model *Model) Blur() {
-	model.input.Blur()
+func (model Model) Blur() Model {
 	model.isFocused = false
+	model.input.Blur()
+	return model
 }
 
 func (model Model) Focused() bool {
@@ -100,6 +104,7 @@ func (model Model) GetValue() string {
 	return model.input.Value()
 }
 
-func (model *Model) SetValue(value string) {
-	model.input.SetValue(value)
+func (model Model) SetValue(value string) Model {
+	model.input = model.input.SetValue(value)
+	return model
 }

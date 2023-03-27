@@ -31,7 +31,7 @@ func OverlayString(background string, overlay string, shouldDimBackground bool) 
 	overlayWidth := lipgloss.Width(overlay)
 
 	// The index of the first line that will suffer replacement
-	firstOverlaidLineIdx := (backgroundHeight / 2) - (overlayHeight / 2)
+	firstOverlaidLineIdx := int(float64(backgroundHeight) * 0.30)
 
 	// The index of the line that switches back to being background again
 	resumeLineIdx := firstOverlaidLineIdx + overlayHeight

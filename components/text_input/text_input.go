@@ -22,59 +22,61 @@ func New(promptText string) Model {
 	}
 }
 
-func (m Model) Init() tea.Cmd {
+func (model Model) Init() tea.Cmd {
 	return nil
 }
 
-func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
+func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
-	m.input, cmd = m.input.Update(msg)
-	return m, cmd
+	model.input, cmd = model.input.Update(msg)
+	return model, cmd
 }
 
-func (m Model) View() string {
+func (model Model) View() string {
 	baseStyle := lipgloss.NewStyle().
-		Width(m.width).
-		Height(m.height)
-	if m.input.Focused() {
+		Width(model.width).
+		Height(model.height)
+	if model.input.Focused() {
 		baseStyle = baseStyle.Background(global_styles.FocusedComponentBackgroundColor).Bold(true)
 	}
 
 	// It'd be really nice if textinput.Model allowed us to control the style based on focus, but alas it does not
-	return baseStyle.Render(m.input.View())
+	return baseStyle.Render(model.input.View())
 }
 
-func (m *Model) Focus() tea.Cmd {
-	return m.input.Focus()
+func (model Model) Focus() (Model, tea.Cmd) {
+	return model, model.input.Focus()
 }
 
-func (m *Model) Blur() {
-	m.input.Blur()
+func (model Model) Blur() Model {
+	model.input.Blur()
+	return model
 }
 
-func (m Model) Focused() bool {
-	return m.input.Focused()
+func (model Model) Focused() bool {
+	return model.input.Focused()
 }
 
-func (m *Model) SetValue(newValue string) {
-	m.input.SetValue(newValue)
+func (model Model) SetValue(newValue string) Model {
+	model.input.SetValue(newValue)
+	return model
 }
 
-func (m Model) Value() string {
-	return m.input.Value()
+func (model Model) Value() string {
+	return model.input.Value()
 }
 
-func (m Model) Resize(width int, height int) Model {
-	m.width = width
-	m.input.Width = width
-	m.height = height
-	return m
+func (model Model) Resize(width int, height int) Model {
+	model.width = width
+	model.input.Width = width
+	model.height = height
+	return model
 }
 
-func (m Model) GetHeight() int {
-	return m.height
+func (model Model) GetHeight() int {
+	return model.height
 }
 
-func (m Model) GetWidth() int {
-	return m.width
+func (model Model) GetWidth() int {
+	return model.width
 }
