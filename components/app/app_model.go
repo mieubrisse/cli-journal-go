@@ -108,11 +108,8 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				model.createContentForm, cmd = model.createContentForm.Focus()
 				return model, cmd
 			case "d":
-				model.contentList = model.contentList.Blur()
+				model.contentList = model.contentList.re
 
-				var cmd tea.Cmd
-				model.createContentForm, cmd = model.createContentForm.Focus()
-				return model, cmd
 			}
 
 			var cmd tea.Cmd

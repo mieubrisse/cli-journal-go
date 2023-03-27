@@ -197,6 +197,19 @@ func (model Model) AddItem(content content_item.ContentItem) Model {
 	return model
 }
 
+func (model Model) RemoveItems() Model {
+	if len(model.filteredContentIndices) == 0 {
+		return model
+	}
+
+	// Bulk remove, if the user selected with it
+	if len(model.selectedItemIndexes) > 0 {
+		model.selectedItemIndexes
+		model.allContent =
+	}
+
+}
+
 func (model Model) Focused() bool {
 	return model.isFocused
 }

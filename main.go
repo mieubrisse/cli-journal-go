@@ -45,8 +45,8 @@ func main() {
 	createContentFormInput := text_input.New("Name: ")
 	createContentForm := form.New("Create Content", createContentFormInput)
 
-	nameFilterInput := text_input.New("🔎 ")
-	tagFilterInput := text_input.New("🏷️  ")
+	nameFilterInput := text_input.New("🔎  ")
+	tagFilterInput := text_input.New("🏷️   ")
 
 	contentList := filterable_content_list.New(content)
 	contentList.Focus()
