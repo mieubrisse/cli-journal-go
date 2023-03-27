@@ -9,6 +9,7 @@ import (
 	"github.com/mieubrisse/cli-journal-go/data_structures/content_item"
 	"os"
 	"time"
+	"unicode"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -43,7 +44,18 @@ func main() {
 	}
 
 	createContentFormInput := text_input.New("Name: ")
-	createContentForm := form.New("Create Content", createContentFormInput)
+	createContentForm := form.New(
+		"Create Content",
+		createContentFormInput,
+		func(text string) bool {
+			for _, char := range []rune(text) {
+				if !(unicode.IsDigit(char) || unicode.IsLetter(char)) {
+					return false
+				}
+			}
+			return true
+		},
+	)
 
 	nameFilterInput := text_input.New("🔎 ")
 	tagFilterInput := text_input.New("🏷️  ")

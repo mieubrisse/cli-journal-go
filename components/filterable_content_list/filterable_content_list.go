@@ -192,7 +192,10 @@ func (model Model) SetTagFilterText(text string) Model {
 }
 
 func (model Model) AddItem(content content_item.ContentItem) Model {
-	model.allContent = append(model.allContent, content)
+	model.allContent = append(
+		[]content_item.ContentItem{content},
+		model.allContent...,
+	)
 	model = model.recalculateView()
 	return model
 }

@@ -4,6 +4,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mieubrisse/cli-journal-go/components/text_input"
+	"github.com/mieubrisse/cli-journal-go/global_styles"
 )
 
 const (
@@ -17,7 +18,8 @@ type Model struct {
 	title string
 
 	// TODO more fields
-	input text_input.Model
+	input     text_input.Model
+	validator func(text string) bool
 
 	isFocused bool
 
@@ -25,10 +27,15 @@ type Model struct {
 	width  int
 }
 
-func New(title string, input text_input.Model) Model {
+func New(
+	title string,
+	input text_input.Model,
+	validator func(text string) bool,
+) Model {
 	return Model{
-		title: title,
-		input: input,
+		title:     title,
+		input:     input,
+		validator: validator,
 	}
 }
 
@@ -43,6 +50,12 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	var cmd tea.Cmd
 	model.input, cmd = model.input.Update(msg)
+
+	isValid := model.validator(model.input.Value())
+
+	model.input = model.input.SetTextStyle()
+	if isValid
+
 	return model, cmd
 }
 
@@ -53,7 +66,7 @@ func (model Model) View() string {
 		lipgloss.Center,
 		model.title,
 		"",
-		model.input.View(),
+		lipgloss.NewStyle().Foreground(global_styles.Red).Render(model.input.View()),
 	)
 
 	return lipgloss.NewStyle().

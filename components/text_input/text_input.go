@@ -62,6 +62,11 @@ func (model Model) SetValue(newValue string) Model {
 	return model
 }
 
+func (model Model) SetTextStyle(style lipgloss.Style) Model {
+	model.input.TextStyle = style
+	return model
+}
+
 func (model Model) Value() string {
 	return model.input.Value()
 }
