@@ -4,13 +4,18 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mieubrisse/cli-journal-go/components/filterable_content_list"
+	"github.com/mieubrisse/cli-journal-go/components/form"
 	"github.com/mieubrisse/cli-journal-go/components/text_input"
+	"github.com/mieubrisse/cli-journal-go/data_structures/content_item"
 	"github.com/mieubrisse/cli-journal-go/helpers"
+	"time"
 )
 
 const (
 	maxCreateContentModalWidth  = 50
 	maxCreateContentModalHeight = 3
+
+	shouldDimBackgroundForModals = false
 )
 
 // "Constants"
@@ -25,7 +30,7 @@ var verticalPadThresholds = map[int]int{
 }
 
 type Model struct {
-	createContentModalInput text_input.Model
+	createContentForm form.Model
 
 	nameFilterInput text_input.Model
 
@@ -38,18 +43,18 @@ type Model struct {
 }
 
 func New(
-	createContentModalInput text_input.Model,
+	createContentForm form.Model,
 	nameFilterInput text_input.Model,
 	tagFilterInput text_input.Model,
 	contentList filterable_content_list.Model,
 ) Model {
 	return Model{
-		createContentModalInput: createContentModalInput,
-		nameFilterInput:         nameFilterInput,
-		tagFilterInput:          tagFilterInput,
-		contentList:             contentList,
-		height:                  0,
-		width:                   0,
+		createContentForm: createContentForm,
+		nameFilterInput:   nameFilterInput,
+		tagFilterInput:    tagFilterInput,
+		contentList:       contentList,
+		height:            0,
+		width:             0,
 	}
 }
 
@@ -89,13 +94,13 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				model.tagFilterInput.SetValue("")
 
 				// Need to tell the content list that we changed
-				model.contentList.UpdateFilters(
+				model.contentList.SetFilterTexts(
 					model.nameFilterInput.Value(),
 					model.tagFilterInput.Value(),
 				)
 			case "c":
 				model.contentList.Blur()
-				model.createContentModalInput.Focus()
+				model.createContentForm.Focus()
 			}
 
 			var cmd tea.Cmd
@@ -109,7 +114,7 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				// Revert to the previous filter value, and update the content list
 				model.nameFilterInput.SetValue("")
-				model.contentList.UpdateFilters(
+				model.contentList.SetFilterTexts(
 					model.nameFilterInput.Value(),
 					model.tagFilterInput.Value(),
 				)
@@ -128,7 +133,7 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			model.nameFilterInput, cmd = model.nameFilterInput.Update(msg)
 
 			// Make sure to tell the content list about the new filter update
-			model.contentList.UpdateFilters(
+			model.contentList.SetFilterTexts(
 				model.nameFilterInput.Value(),
 				model.tagFilterInput.Value(),
 			)
@@ -141,7 +146,7 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				// Revert to the previous filter value, and update the content list
 				model.tagFilterInput.SetValue("")
-				model.contentList.UpdateFilters(
+				model.contentList.SetFilterTexts(
 					model.tagFilterInput.Value(),
 					model.tagFilterInput.Value(),
 				)
@@ -160,23 +165,38 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			model.tagFilterInput, cmd = model.tagFilterInput.Update(msg)
 
 			// Make sure to tell the content list about the new filter update
-			model.contentList.UpdateFilters(
+			model.contentList.SetFilterTexts(
 				model.nameFilterInput.Value(),
 				model.tagFilterInput.Value(),
 			)
 
 			return model, cmd
-		} else if model.createContentModalInput.Focused() {
+		} else if model.createContentForm.Focused() {
 			switch msg.String() {
 			case "esc":
 				// Back out of the create content modal
-				model.createContentModalInput.Blur()
+				model.createContentForm.SetValue("")
+				model.createContentForm.Blur()
 				model.contentList.Focus()
+				return model, nil
+			case "enter":
+				// Create the new content piece
+				content := content_item.ContentItem{
+					Timestamp: time.Now(),
+					Name:      model.createContentForm.GetValue(),
+					Tags:      []string{},
+				}
+				model.contentList = model.contentList.AddItem(content)
+
+				model.createContentForm.SetValue("")
+				model.createContentForm.Blur()
+				model.contentList.Focus()
+
 				return model, nil
 			}
 
 			var cmd tea.Cmd
-			model.createContentModalInput, cmd = model.createContentModalInput.Update(msg)
+			model.createContentForm, cmd = model.createContentForm.Update(msg)
 			return model, cmd
 		}
 	case tea.WindowSizeMsg:
@@ -202,14 +222,18 @@ func (model Model) View() string {
 		Padding(verticalPad, horizontalPad, verticalPad, horizontalPad).
 		Render(contents)
 
-	if model.createContentModalInput.Focused() {
-		createContentModalStr := model.createContentModalInput.View()
+	if model.createContentForm.Focused() {
+		createContentFormStr := model.createContentForm.View()
 		/*
 			createContentModalStr = lipgloss.NewStyle().
 				Border()
 		*/
 
-		result = helpers.OverlayString(result, createContentModalStr)
+		createContentFormStr = lipgloss.NewStyle().
+			BorderStyle(lipgloss.NormalBorder()).
+			Render(createContentFormStr)
+
+		result = helpers.OverlayString(result, createContentFormStr, shouldDimBackgroundForModals)
 	}
 
 	return result
@@ -235,7 +259,7 @@ func (model Model) Resize(width int, height int) Model {
 
 	createContentModalWidth := helpers.GetMinInt(model.width, maxCreateContentModalWidth)
 	createContentModalHeight := helpers.GetMinInt(model.height, maxCreateContentModalHeight)
-	model.createContentModalInput = model.createContentModalInput.Resize(createContentModalWidth, createContentModalHeight)
+	model.createContentForm = model.createContentForm.Resize(createContentModalWidth, createContentModalHeight)
 
 	return model
 }

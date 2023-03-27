@@ -177,7 +177,7 @@ func (model Model) View() string {
 
 // Updates the name filter text that this model knows about, and does the appropriate recalculations on the cursor
 // NOTE: We have to do this because there doesn't seem to be a way to share a single textinput.Model component between two models
-func (model *Model) UpdateFilters(nameFilterText string, tagFilterText string) {
+func (model *Model) SetFilterTexts(nameFilterText string, tagFilterText string) {
 	nameMatchPredicate := getNameMatchPredicate(nameFilterText)
 	tagMatchPredicate := getTagMatchPredicate(tagFilterText)
 
@@ -214,10 +214,16 @@ func (model *Model) UpdateFilters(nameFilterText string, tagFilterText string) {
 	model.filteredContentIndices = filteredContentIndices
 }
 
+func (model Model) AddItem(content content_item.ContentItem) Model {
+	model.allContent = append(model.allContent, content)
+	return model
+}
+
 func (model *Model) Focused() bool {
 	return model.isFocused
 }
 
+// TODO return a model?
 func (model *Model) Focus() {
 	model.isFocused = true
 }
@@ -237,6 +243,10 @@ func (model Model) Resize(width int, height int) Model {
 //	PRIVATE HELPER FUNCTIONS
 //
 // ====================================================================================================
+func recalculateView() {
+
+}
+
 func getNameMatchPredicate(filterText string) func(item content_item.ContentItem) bool {
 	terms := strings.Fields(filterText)
 
