@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/mieubrisse/cli-journal-go/components/app"
 	"github.com/mieubrisse/cli-journal-go/components/filterable_content_list"
-	"github.com/mieubrisse/cli-journal-go/components/text_filter_input"
+	"github.com/mieubrisse/cli-journal-go/components/text_input"
 	"github.com/mieubrisse/cli-journal-go/data_structures/content_item"
 	"os"
 	"time"
@@ -41,13 +41,14 @@ func main() {
 		},
 	}
 
-	nameFilterInput := text_filter_input.New("🔎 ")
-	tagFilterInput := text_filter_input.New("🏷️  ")
+	createContentModalInput := text_input.New("+ ")
+	nameFilterInput := text_input.New("🔎 ")
+	tagFilterInput := text_input.New("🏷️  ")
 
 	contentList := filterable_content_list.New(content)
 	contentList.Focus()
 
-	topLevelModel := app.New(nameFilterInput, tagFilterInput, contentList)
+	topLevelModel := app.New(createContentModalInput, nameFilterInput, tagFilterInput, contentList)
 
 	p := tea.NewProgram(topLevelModel, tea.WithAltScreen())
 

@@ -1,4 +1,4 @@
-package text_filter_input
+package text_input
 
 import (
 	"github.com/charmbracelet/bubbles/textinput"

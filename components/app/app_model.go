@@ -4,18 +4,32 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mieubrisse/cli-journal-go/components/filterable_content_list"
-	"github.com/mieubrisse/cli-journal-go/components/text_filter_input"
+	"github.com/mieubrisse/cli-journal-go/components/text_input"
 	"github.com/mieubrisse/cli-journal-go/helpers"
 )
 
-type Mode int
+const (
+	maxCreateContentModalWidth  = 50
+	maxCreateContentModalHeight = 3
+)
+
+// "Constants"
+var horizontalPadThresholds = map[int]int{
+	0:   0,
+	60:  1,
+	120: 2,
+}
+var verticalPadThresholds = map[int]int{
+	0:  0,
+	40: 1,
+}
 
 type Model struct {
-	mode Mode
+	createContentModalInput text_input.Model
 
-	nameFilterInput text_filter_input.Model
+	nameFilterInput text_input.Model
 
-	tagFilterInput text_filter_input.Model
+	tagFilterInput text_input.Model
 
 	contentList filterable_content_list.Model
 
@@ -23,28 +37,19 @@ type Model struct {
 	width  int
 }
 
-var horizontalPadThresholds = map[int]int{
-	0:   0,
-	60:  1,
-	120: 2,
-}
-
-var verticalPadThresholds = map[int]int{
-	0:  0,
-	40: 1,
-}
-
 func New(
-	nameFilterInput text_filter_input.Model,
-	tagFilterInput text_filter_input.Model,
+	createContentModalInput text_input.Model,
+	nameFilterInput text_input.Model,
+	tagFilterInput text_input.Model,
 	contentList filterable_content_list.Model,
 ) Model {
 	return Model{
-		nameFilterInput: nameFilterInput,
-		tagFilterInput:  tagFilterInput,
-		contentList:     contentList,
-		height:          0,
-		width:           0,
+		createContentModalInput: createContentModalInput,
+		nameFilterInput:         nameFilterInput,
+		tagFilterInput:          tagFilterInput,
+		contentList:             contentList,
+		height:                  0,
+		width:                   0,
 	}
 }
 
@@ -88,6 +93,9 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					model.nameFilterInput.Value(),
 					model.tagFilterInput.Value(),
 				)
+			case "c":
+				model.contentList.Blur()
+				model.createContentModalInput.Focus()
 			}
 
 			var cmd tea.Cmd
@@ -158,6 +166,18 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			)
 
 			return model, cmd
+		} else if model.createContentModalInput.Focused() {
+			switch msg.String() {
+			case "esc":
+				// Back out of the create content modal
+				model.createContentModalInput.Blur()
+				model.contentList.Focus()
+				return model, nil
+			}
+
+			var cmd tea.Cmd
+			model.createContentModalInput, cmd = model.createContentModalInput.Update(msg)
+			return model, cmd
 		}
 	case tea.WindowSizeMsg:
 		return model.Resize(msg.Width, msg.Height), nil
@@ -176,11 +196,23 @@ func (model Model) View() string {
 	contents := lipgloss.JoinVertical(lipgloss.Left, sections...)
 
 	horizontalPad, verticalPad := getPadsForSize(model.width, model.height)
-	return lipgloss.NewStyle().
+	result := lipgloss.NewStyle().
 		Width(model.width).
 		Height(model.height).
 		Padding(verticalPad, horizontalPad, verticalPad, horizontalPad).
 		Render(contents)
+
+	if model.createContentModalInput.Focused() {
+		createContentModalStr := model.createContentModalInput.View()
+		/*
+			createContentModalStr = lipgloss.NewStyle().
+				Border()
+		*/
+
+		result = helpers.OverlayString(result, createContentModalStr)
+	}
+
+	return result
 }
 
 func (model Model) Resize(width int, height int) Model {
@@ -200,6 +232,10 @@ func (model Model) Resize(width int, height int) Model {
 	)
 
 	model.contentList = model.contentList.Resize(componentSpaceWidth, contentListHeight)
+
+	createContentModalWidth := helpers.GetMinInt(model.width, maxCreateContentModalWidth)
+	createContentModalHeight := helpers.GetMinInt(model.height, maxCreateContentModalHeight)
+	model.createContentModalInput = model.createContentModalInput.Resize(createContentModalWidth, createContentModalHeight)
 
 	return model
 }
