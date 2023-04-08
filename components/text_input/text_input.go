@@ -5,10 +5,13 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mieubrisse/cli-journal-go/global_styles"
+	"github.com/mieubrisse/cli-journal-go/helpers"
+	"github.com/muesli/ansi"
 )
 
 type Model struct {
-	input textinput.Model
+	input           textinput.Model
+	foregroundColor lipgloss.Color
 
 	width  int
 	height int
@@ -16,6 +19,7 @@ type Model struct {
 
 func New(promptText string) Model {
 	input := textinput.New()
+
 	input.Prompt = promptText
 	return Model{
 		input: input,
@@ -35,7 +39,8 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 func (model Model) View() string {
 	baseStyle := lipgloss.NewStyle().
 		Width(model.width).
-		Height(model.height)
+		Height(model.height).
+		Foreground(model.foregroundColor)
 	if model.input.Focused() {
 		baseStyle = baseStyle.Background(global_styles.FocusedComponentBackgroundColor).Bold(true)
 	}
@@ -62,8 +67,8 @@ func (model Model) SetValue(newValue string) Model {
 	return model
 }
 
-func (model Model) SetTextStyle(style lipgloss.Style) Model {
-	model.input.TextStyle = style
+func (model Model) SetForegroundColor(color lipgloss.Color) Model {
+	model.foregroundColor = color
 	return model
 }
 
@@ -73,8 +78,19 @@ func (model Model) Value() string {
 
 func (model Model) Resize(width int, height int) Model {
 	model.width = width
-	model.input.Width = width
 	model.height = height
+
+	promptPrintableLength := ansi.PrintableRuneWidth(model.input.Prompt)
+
+	// I'm not actually sure why we need the extra - 1 here (something to do with how Charm renders the max width); if we
+	// don't have it though, things get weird
+	maxNumDesiredDisplayedChars := width - promptPrintableLength - 1
+	maxNumActualDisplayedChars := helpers.GetMaxInt(0, maxNumDesiredDisplayedChars)
+
+	// The width on the Charm input is actually the max number of characters displayed at once NOT including the prompt!
+	// This is why we do all the calculations prior
+	model.input.Width = maxNumActualDisplayedChars
+
 	return model
 }
 

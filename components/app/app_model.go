@@ -171,7 +171,7 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch msg.String() {
 			case "esc":
 				// Back out of the create content modal
-				model.createContentForm = model.createContentForm.SetValue("").
+				model.createContentForm = model.createContentForm.Clear().
 					Blur()
 				model.contentList = model.contentList.Focus()
 				return model, nil
@@ -184,7 +184,7 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				model.contentList = model.contentList.AddItem(content).
 					Focus()
-				model.createContentForm = model.createContentForm.SetValue("").
+				model.createContentForm = model.createContentForm.Clear().
 					Blur()
 
 				return model, nil

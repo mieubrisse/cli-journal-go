@@ -2,17 +2,18 @@ package main
 
 import (
 	"fmt"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mieubrisse/cli-journal-go/components/app"
 	"github.com/mieubrisse/cli-journal-go/components/filterable_content_list"
 	"github.com/mieubrisse/cli-journal-go/components/form"
 	"github.com/mieubrisse/cli-journal-go/components/text_input"
 	"github.com/mieubrisse/cli-journal-go/data_structures/content_item"
 	"os"
+	"regexp"
 	"time"
-	"unicode"
-
-	tea "github.com/charmbracelet/bubbletea"
 )
+
+var acceptableFormFieldRegex = regexp.MustCompile("^[a-zA-Z0-9.-]+$")
 
 func main() {
 	// TODO set up more items and deal with pagination
@@ -48,12 +49,7 @@ func main() {
 		"Create Content",
 		createContentFormInput,
 		func(text string) bool {
-			for _, char := range []rune(text) {
-				if !(unicode.IsDigit(char) || unicode.IsLetter(char)) {
-					return false
-				}
-			}
-			return true
+			return acceptableFormFieldRegex.MatchString(text)
 		},
 	)
 

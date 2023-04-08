@@ -32,11 +32,12 @@ func New(
 	input text_input.Model,
 	validator func(text string) bool,
 ) Model {
-	return Model{
+	model := Model{
 		title:     title,
 		input:     input,
 		validator: validator,
 	}
+	return model.recalculateInputColors()
 }
 
 func (model Model) Init() tea.Cmd {
@@ -51,10 +52,7 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	model.input, cmd = model.input.Update(msg)
 
-	isValid := model.validator(model.input.Value())
-
-	model.input = model.input.SetTextStyle()
-	if isValid
+	model = model.recalculateInputColors()
 
 	return model, cmd
 }
@@ -62,18 +60,20 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 func (model Model) View() string {
 	// TODO some fancy nonsense to truncate strings that are too long for the form
 
-	content := lipgloss.JoinVertical(
+	renderedTitle := lipgloss.NewStyle().Foreground(global_styles.White).Bold(true).Render(model.title)
+
+	lines := lipgloss.JoinVertical(
 		lipgloss.Center,
-		model.title,
+		renderedTitle,
 		"",
-		lipgloss.NewStyle().Foreground(global_styles.Red).Render(model.input.View()),
+		model.input.View(),
 	)
 
 	return lipgloss.NewStyle().
 		Width(model.width).
 		Height(model.height).
 		Padding(verticalPadding, horizontalPadding, verticalPadding, horizontalPadding).
-		Render(content)
+		Render(lines)
 }
 
 func (model Model) Focus() (Model, tea.Cmd) {
@@ -117,7 +117,18 @@ func (model Model) GetValue() string {
 	return model.input.Value()
 }
 
-func (model Model) SetValue(value string) Model {
-	model.input = model.input.SetValue(value)
+func (model Model) Clear() Model {
+	model.input = model.input.SetValue("")
+	model = model.recalculateInputColors()
+	return model
+}
+
+func (model Model) recalculateInputColors() Model {
+	isValid := model.validator(model.input.Value())
+	if isValid {
+		model.input = model.input.SetForegroundColor(global_styles.White)
+	} else {
+		model.input = model.input.SetForegroundColor(global_styles.Red)
+	}
 	return model
 }
