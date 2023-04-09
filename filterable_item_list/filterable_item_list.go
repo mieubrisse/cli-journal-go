@@ -47,35 +47,30 @@ func (model Model[T]) View() string {
 	baseLineStyle := lipgloss.NewStyle().
 		Width(model.width)
 
-	firstDisplayedLineIdxInclusive := 0
-	lastDisplayedLineIdxExclusive := len(model.filteredItemsOriginalIndices)
-	if len(model.filteredItemsOriginalIndices) > model.height {
-		// As aesthetic choices, when there are more item lines than display lines:
-		// 1. We want the entire list to scroll around the cursor if it's in the center of the screen, rather than
-		//    the user needing to scroll to top or bottom to get the list to move. This helps the user see more
-		//    relevant information at once
-		// 2. When the cursor is near the top or bottom of the list, scroll the cursor rather than the entire list
-		//    so that we don't get blank space
-		// The easiest way to accomplish this is to calculate the range of acceptable first-line indexes of the view,
-		//   which will range from [0, num_items - num_display_lines], and when the user is in the middle of the list
-		//   the view will have the cursor line in the center
+	// As aesthetic choices, when there are more item lines than display lines:
+	// 1. We want the entire list to scroll around the cursor if it's in the center of the screen, rather than
+	//    the user needing to scroll to top or bottom to get the list to move. This helps the user see more
+	//    relevant information at once
+	// 2. When the cursor is near the top or bottom of the list, scroll the cursor rather than the entire list
+	//    so that we don't get blank space
+	// The easiest way to accomplish this is to calculate the range of acceptable first-line indexes of the view,
+	//   which will range from [0, num_items - num_display_lines], and when the user is in the middle of the list
+	//   the view will have the cursor line in the center
+	halfHeight := model.height / 2
 
-		halfHeight := model.height / 2
+	// Ensure that, when near the bottom of the list, the cursor is no longer centered and scrolls to the bottom
+	firstDisplayedLineIdxInclusive := helpers.GetMinInt(
+		model.highlightedItemIdx-halfHeight,
+		len(model.filteredItemsOriginalIndices)-model.height,
+	)
 
-		// Ensure that, when near the top of the list, the cursor is no longer centered and scrolls to the top
-		firstDisplayedLineIdxInclusive = helpers.GetMaxInt(
-			model.highlightedItemIdx-halfHeight,
-			0,
-		)
+	// Ensure that, when near the top of the list, the cursor is no longer centered and scrolls to the top
+	firstDisplayedLineIdxInclusive = helpers.GetMaxInt(
+		firstDisplayedLineIdxInclusive,
+		0,
+	)
 
-		// Ensure that, when near the bottom of the list, the cursor is no longer centered and scrolls to the bottom
-		firstDisplayedLineIdxInclusive = helpers.GetMinInt(
-			firstDisplayedLineIdxInclusive,
-			len(model.filteredItemsOriginalIndices)-model.height,
-		)
-
-		lastDisplayedLineIdxExclusive = firstDisplayedLineIdxInclusive + model.height
-	}
+	lastDisplayedLineIdxExclusive := firstDisplayedLineIdxInclusive + model.height
 
 	displayedItems := model.filteredItemsOriginalIndices[firstDisplayedLineIdxInclusive:lastDisplayedLineIdxExclusive]
 
@@ -104,16 +99,25 @@ func (model Model[T]) View() string {
 }
 
 func (model Model[T]) UpdateFilter(newFilter func(T) bool) Model[T] {
+	highlightedOriginalItemIdx := model.filteredItemsOriginalIndices[model.highlightedItemIdx]
+
+	// By default, assume that the highlighted item in the pre-filter list doesn't exist in the
+	// post-filter list (but we'll fix this below if the assumption is false)
+	model.highlightedItemIdx = 0
+
 	newFilteredItemOriginalIndices := []int{}
 	for idx, item := range model.unfilteredItems {
 		if newFilter(item) {
 			newFilteredItemOriginalIndices = append(newFilteredItemOriginalIndices, idx)
+
+			// If the highlighted item in the pre-filter list also exists in the post-filter list,
+			// leave it highlighted
+			if idx == highlightedOriginalItemIdx {
+				model.highlightedItemIdx = len(newFilteredItemOriginalIndices) - 1
+			}
 		}
 	}
 	model.filteredItemsOriginalIndices = newFilteredItemOriginalIndices
-
-	model.highlightedItemIdx = 0
-	// TODO keep the highlighted item index if it's in the new, updated list
 
 	return model
 }
@@ -146,8 +150,4 @@ func (model Model[T]) GetWidth() int {
 	return model.width
 }
 
-// =================================== PRIVATE HELPER FUNCTIONS ===================================
-func (model Model[T]) recalculateView() Model[T] {
-
-	return model
-}
+// TODO focus???
