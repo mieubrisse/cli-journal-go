@@ -14,17 +14,15 @@ import (
 const (
 	maxCreateContentModalWidth  = 50
 	maxCreateContentModalHeight = 3
-
-	shouldDimBackgroundForModals = false
 )
 
 // "Constants"
-var horizontalPadThresholds = map[int]int{
+var horizontalPadThresholdsByTerminalWidth = map[int]int{
 	0:   0,
 	60:  1,
 	120: 2,
 }
-var verticalPadThresholds = map[int]int{
+var verticalPadThresholdsByTerminalHeight = map[int]int{
 	0:  0,
 	40: 1,
 }
@@ -38,6 +36,9 @@ type Model struct {
 
 	contentList filterable_content_list.Model
 
+	// TODO extract this out somewhere better!!!
+	tags map[string]bool
+
 	height int
 	width  int
 }
@@ -47,12 +48,15 @@ func New(
 	nameFilterInput text_input.Model,
 	tagFilterInput text_input.Model,
 	contentList filterable_content_list.Model,
+	// TODO extract
+	tags map[string]bool,
 ) Model {
 	return Model{
 		createContentForm: createContentForm,
 		nameFilterInput:   nameFilterInput,
 		tagFilterInput:    tagFilterInput,
 		contentList:       contentList,
+		tags:              tags,
 		height:            0,
 		width:             0,
 	}
@@ -228,7 +232,7 @@ func (model Model) View() string {
 			BorderStyle(lipgloss.NormalBorder()).
 			Render(createContentFormStr)
 
-		result = helpers.OverlayString(result, createContentFormStr, shouldDimBackgroundForModals)
+		result = helpers.OverlayString(result, createContentFormStr)
 	}
 
 	return result
@@ -259,9 +263,10 @@ func (model Model) Resize(width int, height int) Model {
 	return model
 }
 
+// =================================== Private Helper Functions ===================================
 func getPadsForSize(width int, height int) (int, int) {
 	actualHorizontalPad := 0
-	for threshold, trialHorizontalPad := range horizontalPadThresholds {
+	for threshold, trialHorizontalPad := range horizontalPadThresholdsByTerminalWidth {
 		if width > threshold && actualHorizontalPad < trialHorizontalPad {
 			actualHorizontalPad = trialHorizontalPad
 		}
@@ -269,7 +274,7 @@ func getPadsForSize(width int, height int) (int, int) {
 	}
 
 	actualVerticalPad := 0
-	for threshold, trialVerticalPad := range verticalPadThresholds {
+	for threshold, trialVerticalPad := range verticalPadThresholdsByTerminalHeight {
 		if height > threshold && actualVerticalPad < trialVerticalPad {
 			actualVerticalPad = trialVerticalPad
 		}
