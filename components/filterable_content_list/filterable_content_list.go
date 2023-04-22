@@ -57,9 +57,7 @@ type Model struct {
 	// Whether to highlight the cursor line or not
 	isFocused bool
 
-	// TODO the fact that I need to store this here, duplicated from the actual forms, is probably a sign I'm doing something wrong
-	nameFilterText string
-	tagFilterText  string
+	filterPredicate func(item content_item.ContentItem) bool
 
 	// All content that exists
 	allContent []content_item.ContentItem
@@ -179,15 +177,48 @@ func (model Model) View() string {
 	)
 }
 
-func (model Model) SetNameFilterText(text string) Model {
-	model.nameFilterText = text
-	model = model.recalculateView()
-	return model
-}
+func (model Model) SetFilters(nameFilterLines []string, tagFilterLines []string) Model {
+	nameFilterRegexes := transformTermsToFilterRegexes(nameFilterLines)
+	tagFilterRegexes := transformTermsToFilterRegexes(tagFilterLines)
 
-func (model Model) SetTagFilterText(text string) Model {
-	model.tagFilterText = text
-	model = model.recalculateView()
+	// The way this predicate is structured is as a "gauntlet" - there are many opportunities for an item to be discarded,
+	// and only if it passes those will it be in
+	// I believe this to be the best way to structure predicates, because it makes it easier to think about
+	predicate := func(item content_item.ContentItem) bool {
+		// Filter out non-matching names
+		for _, nameRegex := range nameFilterRegexes {
+			if !nameRegex.MatchString(item.Name) {
+				return false
+			}
+		}
+
+		// If no tag filters are specified, skip this step of the gauntlet
+		if len(tagFilterRegexes) > 0 {
+			// If we have tag filters, we run a sub-gauntlet for tags, where at least one tag must make it through
+			hasTagMatch := false
+		tagLoop:
+			for _, tag := range item.Tags {
+				for _, tagRegex := range tagFilterRegexes {
+					if !tagRegex.MatchString(tag) {
+						continue tagLoop
+					}
+				}
+
+				// A tag made it through the gauntlet; no need to process further tags
+				hasTagMatch = true
+				break
+			}
+			if !hasTagMatch {
+				return false
+			}
+		}
+
+		return true
+	}
+
+	model.filterPredicate = predicate
+
+	model.recalculateView()
 	return model
 }
 
@@ -227,16 +258,9 @@ func (model Model) Resize(width int, height int) Model {
 //
 // ====================================================================================================
 func (model Model) recalculateView() Model {
-	nameMatchPredicate := getNameMatchPredicate(model.nameFilterText)
-	tagMatchPredicate := getTagMatchPredicate(model.tagFilterText)
-
 	filteredContentIndices := []int{}
 	for idx, content := range model.allContent {
-		if !nameMatchPredicate(content) {
-			continue
-		}
-
-		if !tagMatchPredicate(content) {
+		if !model.filterPredicate(content) {
 			continue
 		}
 
@@ -265,20 +289,34 @@ func (model Model) recalculateView() Model {
 	return model
 }
 
-func getNameMatchPredicate(filterText string) func(item content_item.ContentItem) bool {
-	terms := strings.Fields(filterText)
+/*
+func getNameMatchPredicate(nameFilterLines []string) func(item content_item.ContentItem) bool {
+	allSubPredicates := make([]func(item content_item.ContentItem) bool, len(nameFilterLines))
+	for idx, filterLine := range nameFilterLines {
+		terms := strings.Fields(filterLine)
 
-	// No terms == match everything
-	if len(terms) == 0 {
-		return func(item content_item.ContentItem) bool {
-			return true
+		// No terms == match everything
+		if len(terms) == 0 {
+			allSubPredicates[idx] = func(item content_item.ContentItem) bool {
+				return true
+			}
+			continue
+		}
+
+		matcher := getFuzzyMatcherFromTerms(terms)
+		allSubPredicates[idx] = func(item content_item.ContentItem) bool {
+			return matcher.MatchString(item.Name)
 		}
 	}
 
-	matcher := getFuzzyMatcherFromTerms(terms)
-
+	// Glue subpredicates together
 	return func(item content_item.ContentItem) bool {
-		return matcher.MatchString(item.Name)
+		for _, subPredicate := range allSubPredicates {
+			if !subPredicate(item) {
+				return false
+			}
+		}
+		return true
 	}
 }
 
@@ -294,7 +332,7 @@ func getTagMatchPredicate(filterText string) func(item content_item.ContentItem)
 
 	matcher := getFuzzyMatcherFromTerms(terms)
 
-	// There's at least one search term now, so there must be at least one matching tag
+	// There's at least one search term now, so there must be at least one tag that matches all predicates
 	return func(item content_item.ContentItem) bool {
 		for _, tag := range item.Tags {
 			if matcher.MatchString(tag) {
@@ -305,18 +343,33 @@ func getTagMatchPredicate(filterText string) func(item content_item.ContentItem)
 	}
 }
 
-func getFuzzyMatcherFromTerms(terms []string) *regexp.Regexp {
-	// We have terms, so we need to escape them
-	escapedTerms := make([]string, 0, len(terms))
-	for _, term := range terms {
-		escapedTerms = append(escapedTerms, regexp.QuoteMeta(term))
+*/
+
+// Each line that has text, will produce a regex filter that must match
+func transformTermsToFilterRegexes(lines []string) []*regexp.Regexp {
+	result := make([]*regexp.Regexp, 0)
+	for _, line := range lines {
+		terms := strings.Fields(line)
+
+		// Don't bother creating a regex for an empty line
+		if len(terms) == 0 {
+			continue
+		}
+
+		// We have terms, so we need to escape them
+		escapedTerms := make([]string, 0, len(terms))
+		for _, term := range terms {
+			escapedTerms = append(escapedTerms, regexp.QuoteMeta(term))
+		}
+
+		// The (?i) makes the search case-insensitive
+		regexStr := "(?i)" + strings.Join(escapedTerms, ".*")
+
+		// Okay to use MustCompile here because we quote the user's input so it should be safe
+		result = append(result, regexp.MustCompile(regexStr))
 	}
 
-	// The (?i) makes the search case-insensitive
-	regexStr := "(?i)" + strings.Join(escapedTerms, ".*")
-
-	// Okay to use MustCompile here because we quote the user's input so it should be safe
-	return regexp.MustCompile(regexStr)
+	return result
 }
 
 func (model Model) renderContentLine(content content_item.ContentItem, isContentHighlighted bool, isContentSelected bool) string {

@@ -3,11 +3,11 @@ package app
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mieubrisse/cli-journal-go/components/filter_pane"
 	"github.com/mieubrisse/cli-journal-go/components/filterable_content_list"
 	"github.com/mieubrisse/cli-journal-go/components/form"
 	"github.com/mieubrisse/cli-journal-go/data_structures/content_item"
 	"github.com/mieubrisse/cli-journal-go/helpers"
-	"github.com/mieubrisse/vim-bubble/vim"
 	"time"
 )
 
@@ -33,7 +33,7 @@ var verticalPadThresholdsByTerminalHeight = map[int]int{
 type Model struct {
 	createContentForm form.Model
 
-	filterInput vim.Model
+	filterInput filter_pane.Model
 
 	/*
 		nameFilterInput text_input.Model
@@ -43,9 +43,6 @@ type Model struct {
 
 	contentList filterable_content_list.Model
 
-	// TODO extract this out somewhere better!!!
-	tags map[string]bool
-
 	height int
 	width  int
 }
@@ -53,14 +50,12 @@ type Model struct {
 func New(
 	createContentForm form.Model,
 	contentList filterable_content_list.Model,
-// TODO extract
-	tags map[string]bool,
+	filterInput filter_pane.Model,
 ) Model {
 	return Model{
 		createContentForm: createContentForm,
-		filterInput:       vim.New(),
+		filterInput:       filterInput,
 		contentList:       contentList,
-		tags:              tags,
 		height:            0,
 		width:             0,
 	}
@@ -88,23 +83,27 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				model.filterInput.Focus()
 
 				return model, nil
-			case "#":
-				model.contentList = model.contentList.Blur()
+				/*
+					case "#":
+						model.contentList = model.contentList.Blur()
 
-				// This will tell the input that it should display the cursor
-				var cmd tea.Cmd
-				model.tagFilterInput, cmd = model.tagFilterInput.Focus()
+						// This will tell the input that it should display the cursor
+						var cmd tea.Cmd
+						model.tagFilterInput, cmd = model.tagFilterInput.Focus()
 
-				return model, cmd
+						return model, cmd
+
+				*/
 			case "esc":
 				// Clear all filters
-				model.nameFilterInput = model.nameFilterInput.SetValue("")
-				model.tagFilterInput = model.tagFilterInput.SetValue("")
+				/*
+					model.nameFilterInput = model.nameFilterInput.SetValue("")
+					model.tagFilterInput = model.tagFilterInput.SetValue("")
 
-				// Need to tell the content list that we changed
-				model.contentList = model.contentList.
-					SetNameFilterText("").
-					SetTagFilterText("")
+				*/
+				model.filterInput = model.filterInput.Clear()
+				nameFilterLines, tagFilterLines := model.filterInput.GetFilterLines()
+				model.contentList.SetFilters(nameFilterLines, tagFilterLines)
 
 				return model, nil
 			case "c":
@@ -125,52 +124,18 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			model.contentList, cmd = model.contentList.Update(msg)
 			return model, cmd
 
-		} else if model.nameFilterInput.Focused() {
-			switch msg.String() {
-			case "esc":
-				// User is clearing the filter
-				model.nameFilterInput = model.nameFilterInput.SetValue("").
-					Blur()
-				model.contentList = model.contentList.SetNameFilterText("").
-					Focus()
-
-				return model, nil
-			case "enter":
-				// User is exiting the filtering mode, persisting their changes
-				model.nameFilterInput = model.nameFilterInput.Blur()
+		} else if model.filterInput.Focused() {
+			if model.filterInput.IsInNormalMode() && msg.String() == "esc" {
+				model.filterInput.Blur()
 				model.contentList = model.contentList.Focus()
-				return model, nil
 			}
 
 			var cmd tea.Cmd
-			model.nameFilterInput, cmd = model.nameFilterInput.Update(msg)
+			model.filterInput, cmd = model.filterInput.Update(msg)
 
-			// Make sure to tell the content list about the new filter update
-			model.contentList = model.contentList.SetNameFilterText(model.nameFilterInput.Value())
-
-			return model, cmd
-		} else if model.tagFilterInput.Focused() {
-			switch msg.String() {
-			case "esc":
-				// User is clearing the filter
-				model.tagFilterInput = model.tagFilterInput.SetValue("").
-					Blur()
-				model.contentList = model.contentList.SetTagFilterText("").
-					Focus()
-
-				return model, nil
-			case "enter":
-				// User is exiting the filtering mode, persisting their changes
-				model.tagFilterInput = model.tagFilterInput.Blur()
-				model.contentList = model.contentList.Focus()
-				return model, nil
-			}
-
-			var cmd tea.Cmd
-			model.tagFilterInput, cmd = model.tagFilterInput.Update(msg)
-
-			// Make sure to tell the content list about the new filter update
-			model.contentList = model.contentList.SetTagFilterText(model.tagFilterInput.Value())
+			// Make sure to let the content list know about the changes
+			nameFilterList, tagFilterList := model.filterInput.GetFilterLines()
+			model.contentList = model.contentList.SetFilters(nameFilterList, tagFilterList)
 
 			return model, cmd
 		} else if model.createContentForm.Focused() {
