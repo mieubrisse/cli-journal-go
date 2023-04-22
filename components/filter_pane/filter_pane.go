@@ -130,3 +130,10 @@ func (model Model) SetMode(mode vim.Mode) Model {
 	model.input = model.input.SetMode(mode)
 	return model
 }
+
+// Gets the text that has been
+func (model Model) GetCurrentLine() string {
+	cursorRow := model.input.GetCursorRow()
+	lines := strings.Split(model.input.GetValue(), "\n")
+	return lines[cursorRow]
+}

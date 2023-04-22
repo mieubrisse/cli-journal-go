@@ -7,6 +7,7 @@ import (
 	"github.com/mieubrisse/cli-journal-go/components/filterable_content_list"
 	"github.com/mieubrisse/cli-journal-go/components/form"
 	"github.com/mieubrisse/cli-journal-go/data_structures/content_item"
+	"github.com/mieubrisse/cli-journal-go/filterable_item_list"
 	"github.com/mieubrisse/cli-journal-go/global_styles"
 	"github.com/mieubrisse/cli-journal-go/helpers"
 	"github.com/mieubrisse/vim-bubble/vim"
@@ -41,6 +42,8 @@ type Model struct {
 
 	filterPane filter_pane.Model
 
+	filterTabCompletionPane filterable_item_list.Model[tabCompletionItem]
+
 	/*
 		nameFilterInput text_input.Model
 
@@ -58,12 +61,18 @@ func New(
 	contentList filterable_content_list.Model,
 	filterPane filter_pane.Model,
 ) Model {
+	completionPane := filterable_item_list.New[tabCompletionItem]([]tabCompletionItem{
+		{completion: "foo"},
+		{completion: "bar bang blork whoa this is so long"},
+	})
+
 	return Model{
-		createContentForm: createContentForm,
-		filterPane:        filterPane,
-		contentList:       contentList,
-		height:            0,
-		width:             0,
+		createContentForm:       createContentForm,
+		filterPane:              filterPane,
+		filterTabCompletionPane: completionPane,
+		contentList:             contentList,
+		height:                  0,
+		width:                   0,
 	}
 }
 
@@ -195,10 +204,16 @@ func (model Model) View() string {
 		}
 	*/
 
+	filterView := lipgloss.JoinHorizontal(
+		lipgloss.Center,
+		model.filterPane.View(),
+		model.filterTabCompletionPane.View(),
+	)
+
 	sections := []string{
 		model.contentList.View(),
 		filtersLabelLine,
-		model.filterPane.View(),
+		filterView,
 	}
 
 	contents := lipgloss.JoinVertical(lipgloss.Left, sections...)
@@ -237,8 +252,11 @@ func (model Model) Resize(width int, height int) Model {
 	displaySpaceWidth := helpers.GetMaxInt(0, model.width-2*horizontalPad)
 	displaySpaceHeight := helpers.GetMaxInt(0, model.height-2*verticalPad)
 
-	// Resize filter pane (it's always sized right, regardless of whether it's shown or not)
-	model.filterPane = model.filterPane.Resize(displaySpaceWidth, filterPaneHeight)
+	filterPaneWidth := int(0.5 * float64(displaySpaceWidth))
+	model.filterPane = model.filterPane.Resize(filterPaneWidth, filterPaneHeight)
+
+	completionPaneWidth := displaySpaceWidth - filterPaneWidth
+	model.filterTabCompletionPane = model.filterTabCompletionPane.Resize(completionPaneWidth, filterPaneHeight)
 
 	/*
 		model.nameFilterInput = model.nameFilterInput.Resize(displaySpaceWidth, 1)

@@ -20,8 +20,9 @@ type Model[T FilterableListItem] struct {
 	// The index of the highlighted item within the *filtered list*
 	highlightedItemIdx int
 
-	width  int
-	height int
+	isFocused bool
+	width     int
+	height    int
 }
 
 func New[T FilterableListItem](items []T) Model[T] {
@@ -70,7 +71,14 @@ func (model Model[T]) View() string {
 		0,
 	)
 
-	lastDisplayedLineIdxExclusive := firstDisplayedLineIdxInclusive + model.height
+	lastDisplayedLineIdxExclusive := helpers.GetMinInt(
+		len(model.filteredItemsOriginalIndices),
+		firstDisplayedLineIdxInclusive+model.height,
+	)
+
+	if firstDisplayedLineIdxInclusive == lastDisplayedLineIdxExclusive {
+		return ""
+	}
 
 	displayedItems := model.filteredItemsOriginalIndices[firstDisplayedLineIdxInclusive:lastDisplayedLineIdxExclusive]
 
@@ -81,7 +89,7 @@ func (model Model[T]) View() string {
 		item := model.unfilteredItems[originalItemIdx]
 
 		lineStyle := baseLineStyle
-		if idx == viewableLinesHighlightedItemIdx {
+		if model.isFocused && idx == viewableLinesHighlightedItemIdx {
 			lineStyle = baseLineStyle.Copy().Background(global_styles.FocusedComponentBackgroundColor).Bold(true)
 		}
 		renderedLine := lineStyle.Render(item.Render())
@@ -95,7 +103,10 @@ func (model Model[T]) View() string {
 
 	return lipgloss.NewStyle().
 		Width(model.width).
-		Height(model.height).Render(result)
+		Height(model.height).
+		MaxWidth(model.width).
+		MaxHeight(model.height).
+		Render(result)
 }
 
 func (model Model[T]) UpdateFilter(newFilter func(T) bool) Model[T] {
@@ -150,4 +161,17 @@ func (model Model[T]) GetWidth() int {
 	return model.width
 }
 
-// TODO focus???
+func (model *Model[T]) Focus() tea.Cmd {
+	model.isFocused = true
+	return nil
+}
+
+func (model Model[T]) Blur() tea.Cmd {
+	model.isFocused = false
+	return nil
+}
+
+func (model Model[T]) Focused() bool {
+	return model.isFocused
+}
+
