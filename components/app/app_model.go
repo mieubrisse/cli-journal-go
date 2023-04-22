@@ -7,7 +7,9 @@ import (
 	"github.com/mieubrisse/cli-journal-go/components/filterable_content_list"
 	"github.com/mieubrisse/cli-journal-go/components/form"
 	"github.com/mieubrisse/cli-journal-go/data_structures/content_item"
+	"github.com/mieubrisse/cli-journal-go/global_styles"
 	"github.com/mieubrisse/cli-journal-go/helpers"
+	"github.com/mieubrisse/vim-bubble/vim"
 	"time"
 )
 
@@ -15,8 +17,7 @@ const (
 	maxCreateContentModalWidth  = 50
 	maxCreateContentModalHeight = 3
 
-	minFilterInputHeight = 5
-	maxFilterInputHeight = 10
+	filterPaneHeight = 6
 )
 
 // "Constants"
@@ -30,10 +31,15 @@ var verticalPadThresholdsByTerminalHeight = map[int]int{
 	40: 1,
 }
 
+var filtersLabelLine = lipgloss.NewStyle().
+	Foreground(global_styles.Cyan).
+	Bold(true).
+	Render("FILTERS")
+
 type Model struct {
 	createContentForm form.Model
 
-	filterInput filter_pane.Model
+	filterPane filter_pane.Model
 
 	/*
 		nameFilterInput text_input.Model
@@ -50,11 +56,11 @@ type Model struct {
 func New(
 	createContentForm form.Model,
 	contentList filterable_content_list.Model,
-	filterInput filter_pane.Model,
+	filterPane filter_pane.Model,
 ) Model {
 	return Model{
 		createContentForm: createContentForm,
-		filterInput:       filterInput,
+		filterPane:        filterPane,
 		contentList:       contentList,
 		height:            0,
 		width:             0,
@@ -77,10 +83,12 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if model.contentList.Focused() {
 			switch msg.String() {
-			case "/":
+			case "\\":
 				model.contentList = model.contentList.Blur()
 
-				model.filterInput.Focus()
+				// TODO switch to by-value
+				model.filterPane.Focus()
+				model.filterPane = model.filterPane.SetMode(vim.InsertMode)
 
 				return model, nil
 				/*
@@ -94,19 +102,19 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return model, cmd
 
 				*/
-			case "esc":
+			case "c":
 				// Clear all filters
 				/*
 					model.nameFilterInput = model.nameFilterInput.SetValue("")
 					model.tagFilterInput = model.tagFilterInput.SetValue("")
 
 				*/
-				model.filterInput = model.filterInput.Clear()
-				nameFilterLines, tagFilterLines := model.filterInput.GetFilterLines()
-				model.contentList.SetFilters(nameFilterLines, tagFilterLines)
+				model.filterPane = model.filterPane.Clear()
+				nameFilterLines, tagFilterLines := model.filterPane.GetFilterLines()
+				model.contentList = model.contentList.SetFilters(nameFilterLines, tagFilterLines)
 
 				return model, nil
-			case "c":
+			case "n":
 				model.contentList = model.contentList.Blur()
 
 				var cmd tea.Cmd
@@ -124,17 +132,23 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			model.contentList, cmd = model.contentList.Update(msg)
 			return model, cmd
 
-		} else if model.filterInput.Focused() {
-			if model.filterInput.IsInNormalMode() && msg.String() == "esc" {
-				model.filterInput.Blur()
+		} else if model.filterPane.Focused() {
+			if msg.String() == "\\" {
+				// TODO switch to by-value
+				model.filterPane.Blur()
+
 				model.contentList = model.contentList.Focus()
+
+				model = model.resizeContentListAndFilterPane()
+
+				return model, nil
 			}
 
 			var cmd tea.Cmd
-			model.filterInput, cmd = model.filterInput.Update(msg)
+			model.filterPane, cmd = model.filterPane.Update(msg)
 
 			// Make sure to let the content list know about the changes
-			nameFilterList, tagFilterList := model.filterInput.GetFilterLines()
+			nameFilterList, tagFilterList := model.filterPane.GetFilterLines()
 			model.contentList = model.contentList.SetFilters(nameFilterList, tagFilterList)
 
 			return model, cmd
@@ -183,9 +197,8 @@ func (model Model) View() string {
 
 	sections := []string{
 		model.contentList.View(),
-	}
-	if model.filterInput.Focused() {
-		sections = append(sections, model.filterInput.View())
+		filtersLabelLine,
+		model.filterPane.View(),
 	}
 
 	contents := lipgloss.JoinVertical(lipgloss.Left, sections...)
@@ -194,6 +207,8 @@ func (model Model) View() string {
 	result := lipgloss.NewStyle().
 		Width(model.width).
 		Height(model.height).
+		MaxWidth(model.width).
+		MaxHeight(model.height).
 		Padding(verticalPad, horizontalPad, verticalPad, horizontalPad).
 		Render(contents)
 
@@ -219,35 +234,26 @@ func (model Model) Resize(width int, height int) Model {
 	model.height = height
 
 	horizontalPad, verticalPad := getPadsForSize(model.width, model.height)
-	componentSpaceWidth := helpers.GetMaxInt(0, model.width-2*horizontalPad)
-	componentSpaceHeight := helpers.GetMaxInt(0, model.height-2*verticalPad)
+	displaySpaceWidth := helpers.GetMaxInt(0, model.width-2*horizontalPad)
+	displaySpaceHeight := helpers.GetMaxInt(0, model.height-2*verticalPad)
 
-	// Resize filter pane
-	filterText := model.filterInput.GetValue()
-	filterTextHeight := lipgloss.Height(filterText)
-	filterPaneHeight := clampInt(filterTextHeight, minFilterInputHeight, maxFilterInputHeight)
-	model.filterInput.Resize(width, filterPaneHeight)
+	// Resize filter pane (it's always sized right, regardless of whether it's shown or not)
+	model.filterPane = model.filterPane.Resize(displaySpaceWidth, filterPaneHeight)
 
 	/*
-		model.nameFilterInput = model.nameFilterInput.Resize(componentSpaceWidth, 1)
-		model.tagFilterInput = model.tagFilterInput.Resize(componentSpaceWidth, 1)
+		model.nameFilterInput = model.nameFilterInput.Resize(displaySpaceWidth, 1)
+		model.tagFilterInput = model.tagFilterInput.Resize(displaySpaceWidth, 1)
 
 		contentListHeight := helpers.GetMaxInt(
 			0,
-			componentSpaceHeight-model.nameFilterInput.GetHeight()-model.tagFilterInput.GetHeight(),
+			displaySpaceHeight-model.nameFilterInput.GetHeight()-model.tagFilterInput.GetHeight(),
 		)
 	*/
 
-	contentListHeight := componentSpaceHeight
-	if model.filterInput.Focused() {
-		contentListHeight = helpers.GetMaxInt(
-			0,
-			// TODO add space for a buffer line
-			componentSpaceHeight-model.filterInput.GetHeight(),
-		)
-	}
+	// Leave one blank line for filters label
+	contentListHeight := helpers.GetMaxInt(0, displaySpaceHeight-filterPaneHeight-1)
 
-	model.contentList = model.contentList.Resize(componentSpaceWidth, contentListHeight)
+	model.contentList = model.contentList.Resize(displaySpaceWidth, contentListHeight)
 
 	createContentModalWidth := helpers.GetMinInt(model.width, maxCreateContentModalWidth)
 	createContentModalHeight := helpers.GetMinInt(model.height, maxCreateContentModalHeight)
@@ -274,6 +280,10 @@ func getPadsForSize(width int, height int) (int, int) {
 	}
 
 	return actualHorizontalPad, actualVerticalPad
+}
+
+func (model Model) resizeContentListAndFilterPane() Model {
+	return model
 }
 
 func clampInt(value int, min int, max int) int {

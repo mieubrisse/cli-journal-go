@@ -218,7 +218,7 @@ func (model Model) SetFilters(nameFilterLines []string, tagFilterLines []string)
 
 	model.filterPredicate = predicate
 
-	model.recalculateView()
+	model = model.recalculateView()
 	return model
 }
 

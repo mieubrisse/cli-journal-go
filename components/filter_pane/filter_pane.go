@@ -2,7 +2,8 @@ package filter_pane
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/mieubrisse/cli-journal-go/helpers"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/mieubrisse/cli-journal-go/global_styles"
 	"github.com/mieubrisse/vim-bubble/vim"
 	"strings"
 )
@@ -19,10 +20,21 @@ type Model struct {
 	height    int
 }
 
+var normalModePlacardStyle = lipgloss.NewStyle().
+	Background(global_styles.Cyan).
+	Foreground(global_styles.Black)
+
+var insertModePlacardStyle = lipgloss.NewStyle().
+	Background(global_styles.Orange).
+	Foreground(global_styles.Black)
+
 // TODO allow initializing with a state
 func New() Model {
+	input := vim.New()
+	input.NormalModePlacardStyle = normalModePlacardStyle
+	input.InsertModePlacardStyle = insertModePlacardStyle
 	return Model{
-		input:     vim.New(),
+		input:     input,
 		isFocused: false,
 		width:     0,
 		height:    0,
@@ -36,21 +48,14 @@ func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (model Model) View() string {
-	// TODO handle the Really Small case
-	lines := []string{
-		// TODO Replace with a better border
-		"=========",
-		model.input.View(),
-	}
-	return strings.Join(lines, "\n")
+	return model.input.View()
 }
 
 func (model Model) Resize(width int, height int) Model {
 	model.width = width
 	model.height = height
 
-	// Leave room for border
-	model.input.Resize(width, helpers.GetMaxInt(height-1, 0))
+	model.input.Resize(width, height)
 
 	return model
 }
@@ -117,6 +122,11 @@ func (model Model) GetFilterLines() ([]string, []string) {
 	return nameFilterLines, tagFilterLines
 }
 
-func (model Model) IsInNormalMode() bool {
-	return model.input.GetMode() == vim.NormalMode
+func (model Model) GetMode() vim.Mode {
+	return model.input.GetMode()
+}
+
+func (model Model) SetMode(mode vim.Mode) Model {
+	model.input = model.input.SetMode(mode)
+	return model
 }

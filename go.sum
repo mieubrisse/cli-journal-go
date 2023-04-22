@@ -43,6 +43,12 @@ github.com/mieubrisse/vim-bubble v0.0.0-20230422184132-0e22cd290442 h1:+QozyWjc9
 github.com/mieubrisse/vim-bubble v0.0.0-20230422184132-0e22cd290442/go.mod h1:5BVtAdjLPpvwgmxpc93p8bJHL429IJGlI7e+YQUYvTM=
 github.com/mieubrisse/vim-bubble v0.0.0-20230422184900-e4a4be6158a9 h1:J63LRVtwlogVxa6d7DMMJP/R3CjT3DpKDBhl90tTSkA=
 github.com/mieubrisse/vim-bubble v0.0.0-20230422184900-e4a4be6158a9/go.mod h1:5BVtAdjLPpvwgmxpc93p8bJHL429IJGlI7e+YQUYvTM=
+github.com/mieubrisse/vim-bubble v0.0.0-20230422210822-0a001082e096 h1:MOxJnTd7Xn6AHuHDTBIJ3mW5vEf0a65wBsdlNCXcOhs=
+github.com/mieubrisse/vim-bubble v0.0.0-20230422210822-0a001082e096/go.mod h1:5BVtAdjLPpvwgmxpc93p8bJHL429IJGlI7e+YQUYvTM=
+github.com/mieubrisse/vim-bubble v0.0.0-20230422211851-9b0057e4c083 h1:groIVTe5a+KmiYXkeRywiHVE7LMeT/7pORpGRNTpEXg=
+github.com/mieubrisse/vim-bubble v0.0.0-20230422211851-9b0057e4c083/go.mod h1:5BVtAdjLPpvwgmxpc93p8bJHL429IJGlI7e+YQUYvTM=
+github.com/mieubrisse/vim-bubble v0.0.0-20230422214345-522c79270c1a h1:S8/jjcF8+PnnXERLHkmUCf23WGuJRnlsZxGbmol/V/c=
+github.com/mieubrisse/vim-bubble v0.0.0-20230422214345-522c79270c1a/go.mod h1:5BVtAdjLPpvwgmxpc93p8bJHL429IJGlI7e+YQUYvTM=
 github.com/muesli/ansi v0.0.0-20211018074035-2e021307bc4b h1:1XF24mVaiu7u+CFywTdcDo2ie1pzzhwjt6RHqzpMU34=
 github.com/muesli/ansi v0.0.0-20211018074035-2e021307bc4b/go.mod h1:fQuZ0gauxyBcmsdE3ZT4NasjaRdxmbCS0jRHsrWu3Ho=
 github.com/muesli/cancelreader v0.2.2 h1:3I4Kt4BQjOR54NavqnDogx/MIoWBFa0StPA8ELUXHmA=

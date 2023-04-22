@@ -10,6 +10,7 @@ var Orange = lipgloss.Color("#f28f3b")
 var Peach = lipgloss.Color("#ffd5c2")
 var Cyan = lipgloss.Color("#588b8b")
 var White = lipgloss.Color("#ffffff")
+var Black = lipgloss.Color("#000000")
 
 // Colors from https://coolors.co/333333-666a86-95b8d1-e8ddb5-edafb8
 var jet = lipgloss.Color("#333333")
