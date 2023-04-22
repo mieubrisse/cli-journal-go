@@ -44,12 +44,6 @@ type Model struct {
 
 	filterTabCompletionPane filterable_item_list.Model[tabCompletionItem]
 
-	/*
-		nameFilterInput text_input.Model
-
-		tagFilterInput text_input.Model
-	*/
-
 	contentList filterable_content_list.Model
 
 	height int
@@ -100,24 +94,8 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				model.filterPane = model.filterPane.SetMode(vim.InsertMode)
 
 				return model, nil
-				/*
-					case "#":
-						model.contentList = model.contentList.Blur()
-
-						// This will tell the input that it should display the cursor
-						var cmd tea.Cmd
-						model.tagFilterInput, cmd = model.tagFilterInput.Focus()
-
-						return model, cmd
-
-				*/
 			case "c":
 				// Clear all filters
-				/*
-					model.nameFilterInput = model.nameFilterInput.SetValue("")
-					model.tagFilterInput = model.tagFilterInput.SetValue("")
-
-				*/
 				model.filterPane = model.filterPane.Clear()
 				nameFilterLines, tagFilterLines := model.filterPane.GetFilterLines()
 				model.contentList = model.contentList.SetFilters(nameFilterLines, tagFilterLines)
@@ -196,14 +174,6 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (model Model) View() string {
-	/*
-		sections := []string{
-			model.contentList.View(),
-			model.nameFilterInput.View(),
-			model.tagFilterInput.View(),
-		}
-	*/
-
 	filterView := lipgloss.JoinHorizontal(
 		lipgloss.Center,
 		model.filterPane.View(),
@@ -229,10 +199,6 @@ func (model Model) View() string {
 
 	if model.createContentForm.Focused() {
 		createContentFormStr := model.createContentForm.View()
-		/*
-			createContentModalStr = lipgloss.NewStyle().
-				Border()
-		*/
 
 		createContentFormStr = lipgloss.NewStyle().
 			BorderStyle(lipgloss.NormalBorder()).
@@ -257,16 +223,6 @@ func (model Model) Resize(width int, height int) Model {
 
 	completionPaneWidth := displaySpaceWidth - filterPaneWidth
 	model.filterTabCompletionPane = model.filterTabCompletionPane.Resize(completionPaneWidth, filterPaneHeight)
-
-	/*
-		model.nameFilterInput = model.nameFilterInput.Resize(displaySpaceWidth, 1)
-		model.tagFilterInput = model.tagFilterInput.Resize(displaySpaceWidth, 1)
-
-		contentListHeight := helpers.GetMaxInt(
-			0,
-			displaySpaceHeight-model.nameFilterInput.GetHeight()-model.tagFilterInput.GetHeight(),
-		)
-	*/
 
 	// Leave one blank line for filters label
 	contentListHeight := helpers.GetMaxInt(0, displaySpaceHeight-filterPaneHeight-1)
