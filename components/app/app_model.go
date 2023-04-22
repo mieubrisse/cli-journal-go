@@ -5,15 +5,18 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mieubrisse/cli-journal-go/components/filterable_content_list"
 	"github.com/mieubrisse/cli-journal-go/components/form"
-	"github.com/mieubrisse/cli-journal-go/components/text_input"
 	"github.com/mieubrisse/cli-journal-go/data_structures/content_item"
 	"github.com/mieubrisse/cli-journal-go/helpers"
+	"github.com/mieubrisse/vim-bubble/vim"
 	"time"
 )
 
 const (
 	maxCreateContentModalWidth  = 50
 	maxCreateContentModalHeight = 3
+
+	minFilterInputHeight = 5
+	maxFilterInputHeight = 10
 )
 
 // "Constants"
@@ -30,9 +33,13 @@ var verticalPadThresholdsByTerminalHeight = map[int]int{
 type Model struct {
 	createContentForm form.Model
 
-	nameFilterInput text_input.Model
+	filterInput vim.Model
 
-	tagFilterInput text_input.Model
+	/*
+		nameFilterInput text_input.Model
+
+		tagFilterInput text_input.Model
+	*/
 
 	contentList filterable_content_list.Model
 
@@ -45,16 +52,13 @@ type Model struct {
 
 func New(
 	createContentForm form.Model,
-	nameFilterInput text_input.Model,
-	tagFilterInput text_input.Model,
 	contentList filterable_content_list.Model,
-	// TODO extract
+// TODO extract
 	tags map[string]bool,
 ) Model {
 	return Model{
 		createContentForm: createContentForm,
-		nameFilterInput:   nameFilterInput,
-		tagFilterInput:    tagFilterInput,
+		filterInput:       vim.New(),
 		contentList:       contentList,
 		tags:              tags,
 		height:            0,
@@ -81,11 +85,9 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "/":
 				model.contentList = model.contentList.Blur()
 
-				// This will tell the input that it should display the cursor
-				var cmd tea.Cmd
-				model.nameFilterInput, cmd = model.nameFilterInput.Focus()
+				model.filterInput.Focus()
 
-				return model, cmd
+				return model, nil
 			case "#":
 				model.contentList = model.contentList.Blur()
 
@@ -206,10 +208,19 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (model Model) View() string {
+	/*
+		sections := []string{
+			model.contentList.View(),
+			model.nameFilterInput.View(),
+			model.tagFilterInput.View(),
+		}
+	*/
+
 	sections := []string{
 		model.contentList.View(),
-		model.nameFilterInput.View(),
-		model.tagFilterInput.View(),
+	}
+	if model.filterInput.Focused() {
+		sections = append(sections, model.filterInput.View())
 	}
 
 	contents := lipgloss.JoinVertical(lipgloss.Left, sections...)
@@ -246,13 +257,30 @@ func (model Model) Resize(width int, height int) Model {
 	componentSpaceWidth := helpers.GetMaxInt(0, model.width-2*horizontalPad)
 	componentSpaceHeight := helpers.GetMaxInt(0, model.height-2*verticalPad)
 
-	model.nameFilterInput = model.nameFilterInput.Resize(componentSpaceWidth, 1)
-	model.tagFilterInput = model.tagFilterInput.Resize(componentSpaceWidth, 1)
+	// Resize filter pane
+	filterText := model.filterInput.GetValue()
+	filterTextHeight := lipgloss.Height(filterText)
+	filterPaneHeight := clampInt(filterTextHeight, minFilterInputHeight, maxFilterInputHeight)
+	model.filterInput.Resize(width, filterPaneHeight)
 
-	contentListHeight := helpers.GetMaxInt(
-		0,
-		componentSpaceHeight-model.nameFilterInput.GetHeight()-model.tagFilterInput.GetHeight(),
-	)
+	/*
+		model.nameFilterInput = model.nameFilterInput.Resize(componentSpaceWidth, 1)
+		model.tagFilterInput = model.tagFilterInput.Resize(componentSpaceWidth, 1)
+
+		contentListHeight := helpers.GetMaxInt(
+			0,
+			componentSpaceHeight-model.nameFilterInput.GetHeight()-model.tagFilterInput.GetHeight(),
+		)
+	*/
+
+	contentListHeight := componentSpaceHeight
+	if model.filterInput.Focused() {
+		contentListHeight = helpers.GetMaxInt(
+			0,
+			// TODO add space for a buffer line
+			componentSpaceHeight-model.filterInput.GetHeight(),
+		)
+	}
 
 	model.contentList = model.contentList.Resize(componentSpaceWidth, contentListHeight)
 
@@ -281,4 +309,12 @@ func getPadsForSize(width int, height int) (int, int) {
 	}
 
 	return actualHorizontalPad, actualVerticalPad
+}
+
+func clampInt(value int, min int, max int) int {
+	if max < min {
+		max, min = min, max
+	}
+
+	return helpers.GetMaxInt(min, helpers.GetMinInt(max, value))
 }
