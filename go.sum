@@ -57,6 +57,8 @@ github.com/mieubrisse/vim-bubble v0.0.0-20230422234813-04f743bc4440 h1:8QBejC2o2
 github.com/mieubrisse/vim-bubble v0.0.0-20230422234813-04f743bc4440/go.mod h1:5BVtAdjLPpvwgmxpc93p8bJHL429IJGlI7e+YQUYvTM=
 github.com/mieubrisse/vim-bubble v0.0.0-20230423002245-508d566eca7a h1:15FSm+JhbzluFIO7oSTKur62VD9vmoGebFS1iKMO3jY=
 github.com/mieubrisse/vim-bubble v0.0.0-20230423002245-508d566eca7a/go.mod h1:5BVtAdjLPpvwgmxpc93p8bJHL429IJGlI7e+YQUYvTM=
+github.com/mieubrisse/vim-bubble v0.0.0-20230423144130-7bed1274f618 h1:+YMwY1IhP1r0XF2FJwQaCNhlAUoyu2lV4s+PaG3D3oI=
+github.com/mieubrisse/vim-bubble v0.0.0-20230423144130-7bed1274f618/go.mod h1:5BVtAdjLPpvwgmxpc93p8bJHL429IJGlI7e+YQUYvTM=
 github.com/muesli/ansi v0.0.0-20211018074035-2e021307bc4b h1:1XF24mVaiu7u+CFywTdcDo2ie1pzzhwjt6RHqzpMU34=
 github.com/muesli/ansi v0.0.0-20211018074035-2e021307bc4b/go.mod h1:fQuZ0gauxyBcmsdE3ZT4NasjaRdxmbCS0jRHsrWu3Ho=
 github.com/muesli/cancelreader v0.2.2 h1:3I4Kt4BQjOR54NavqnDogx/MIoWBFa0StPA8ELUXHmA=

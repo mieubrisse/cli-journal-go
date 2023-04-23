@@ -42,9 +42,7 @@ func New() Model {
 }
 
 func (model *Model) Update(msg tea.Msg) tea.Cmd {
-	var cmd tea.Cmd
-	model.input, cmd = model.input.Update(msg)
-	return cmd
+	return model.input.Update(msg)
 }
 
 func (model Model) View() string {
@@ -125,7 +123,7 @@ func (model Model) GetMode() vim.Mode {
 }
 
 func (model *Model) SetMode(mode vim.Mode) {
-	model.input = model.input.SetMode(mode)
+	model.input.SetMode(mode)
 }
 
 // Gets the filter text that the user's cursor is currently over, and if it's a tag filter or not
@@ -149,5 +147,5 @@ func (model *Model) ReplaceCurrentFilter(filterText string, isTagFilter bool) {
 	if isTagFilter {
 		newFilter = tagFilterLineLeader + filterText
 	}
-	model.input = model.input.ReplaceLine(newFilter)
+	model.input.ReplaceLine(newFilter)
 }
