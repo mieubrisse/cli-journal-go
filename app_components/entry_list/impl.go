@@ -1,4 +1,4 @@
-package filterable_content_list
+package entry_list
 
 import (
 	"fmt"
@@ -6,8 +6,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mieubrisse/cli-journal-go/app_components/entry_item"
 	"github.com/mieubrisse/cli-journal-go/components/filterable_checklist"
-	"github.com/mieubrisse/cli-journal-go/components/filterable_checklist_item"
-	"github.com/mieubrisse/cli-journal-go/data_structures/content_item"
 	"github.com/mieubrisse/cli-journal-go/global_styles"
 	"regexp"
 	"strings"
@@ -15,7 +13,7 @@ import (
 
 // This
 type Model struct {
-	checklist filterable_checklist.Component
+	checklist filterable_checklist.Component[entry_item.Component]
 
 	items []entry_item.Component
 
@@ -28,11 +26,7 @@ type Model struct {
 
 // TODO replace content with contentProvider
 func New(content []entry_item.Component) Model {
-	castedContent := make([]filterable_checklist_item.Component, len(content))
-	for idx, item := range content {
-		castedContent[idx] = filterable_checklist_item.Component(item)
-	}
-	checklist := filterable_checklist.New(castedContent)
+	checklist := filterable_checklist.New[entry_item.Component](content)
 
 	return Model{
 		checklist: checklist,
@@ -106,17 +100,17 @@ func (model Model) View() string {
 	)
 }
 
-func (model Model) SetFilters(nameFilterLines []string, tagFilterLines []string) Model {
+func (model *Model) SetFilters(nameFilterLines []string, tagFilterLines []string) {
 	nameFilterRegexes := transformTermsToFilterRegexes(nameFilterLines)
 	tagFilterRegexes := transformTermsToFilterRegexes(tagFilterLines)
 
 	// The way this predicate is structured is as a "gauntlet" - there are many opportunities for an item to be discarded,
 	// and only if it passes those will it be in
 	// I believe this to be the best way to structure predicates, because it makes it easier to think about
-	predicate := func(item content_item.ContentItem) bool {
+	predicate := func(_ int, item entry_item.Component) bool {
 		// Filter out non-matching names
 		for _, nameRegex := range nameFilterRegexes {
-			if !nameRegex.MatchString(item.Name) {
+			if !nameRegex.MatchString(item.GetName()) {
 				return false
 			}
 		}
@@ -126,7 +120,7 @@ func (model Model) SetFilters(nameFilterLines []string, tagFilterLines []string)
 			// If we have tag filters, we run a sub-gauntlet for tags, where at least one tag must make it through
 			hasTagMatch := false
 		tagLoop:
-			for _, tag := range item.Tags {
+			for _, tag := range item.GetTags() {
 				for _, tagRegex := range tagFilterRegexes {
 					if !tagRegex.MatchString(tag) {
 						continue tagLoop
@@ -145,12 +139,10 @@ func (model Model) SetFilters(nameFilterLines []string, tagFilterLines []string)
 		return true
 	}
 
-	model.filterPredicate = predicate
-
-	model = model.recalculateView()
-	return model
+	model.checklist.GetFilterableList().UpdateFilter(predicate)
 }
 
+/*
 func (model *Model) AddItem(content content_item.ContentItem) {
 	model.allContent = append(
 		[]content_item.ContentItem{content},
@@ -159,6 +151,7 @@ func (model *Model) AddItem(content content_item.ContentItem) {
 	model = model.recalculateView()
 	return model
 }
+*/
 
 func (model Model) Focused() bool {
 	return model.isFocused
@@ -178,6 +171,14 @@ func (model *Model) Resize(width int, height int) {
 	model.width = width
 	model.height = height
 	model.checklist.Resize(width, height)
+}
+
+func (model Model) GetWidth() int {
+	return model.width
+}
+
+func (model Model) GetHeight() int {
+	return model.height
 }
 
 // ====================================================================================================

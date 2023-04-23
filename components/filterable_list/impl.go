@@ -26,13 +26,13 @@ type implementation[T filterable_list_item.Component] struct {
 	height    int
 }
 
-func New[T filterable_list_item.Component](items []T) implementation[T] {
+func New[T filterable_list_item.Component](items []T) Component[T] {
 	filteredIndices := []int{}
 	for idx := range items {
 		filteredIndices = append(filteredIndices, idx)
 	}
 
-	return &implementation{
+	return &implementation[T]{
 		unfilteredItems:              items,
 		filteredItemsOriginalIndices: filteredIndices,
 		highlightedItemIdx:           0,
@@ -135,7 +135,7 @@ func (impl *implementation[T]) Update(msg tea.Msg) tea.Cmd {
 	return nil
 }
 
-func (impl *implementation[T]) UpdateFilter(newFilter func(int, T) bool) {
+func (impl *implementation[T]) UpdateFilter(newFilter func(idx int, item T) bool) {
 	// This is a hack to indicate "the filtered list was empty, so there's no highlighted item original idx"
 	oldHighlightedItemOriginalIdx := -1
 

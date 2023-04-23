@@ -119,6 +119,10 @@ func (impl implementation) IsSelected() bool {
 	return impl.isSelected
 }
 
+func (impl implementation) IsHighlighted() bool {
+	return impl.isHiglighted
+}
+
 // ====================================================================================================
 //
 //	Private Helper Functions

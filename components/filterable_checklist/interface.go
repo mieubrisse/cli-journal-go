@@ -6,15 +6,15 @@ import (
 	"github.com/mieubrisse/cli-journal-go/components/filterable_list"
 )
 
-type Component interface {
+type Component[T filterable_checklist_item.Component] interface {
 	components.InteractiveComponent
 
 	// Used for manipulations of the inner list (no need to reimplement all the functions)
 	// The items in the original list will match the items from GetItems
-	GetFilterableList() filterable_list.Component
+	GetFilterableList() filterable_list.Component[T]
 
-	SetItems(items []filterable_checklist_item.Component)
-	GetItems() []filterable_checklist_item.Component
+	SetItems(items []T)
+	GetItems() []T
 
 	// GetSelectedItemOriginalIndices gets the indices within the current items list that are selected
 	GetSelectedItemOriginalIndices() map[int]bool

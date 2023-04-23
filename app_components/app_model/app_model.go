@@ -4,18 +4,16 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mieubrisse/cli-journal-go/app_components/entry_item"
+	"github.com/mieubrisse/cli-journal-go/app_components/entry_list"
 	"github.com/mieubrisse/cli-journal-go/app_components/filter_pane"
-	"github.com/mieubrisse/cli-journal-go/app_components/filterable_content_list"
 	"github.com/mieubrisse/cli-journal-go/app_components/new_entry_form"
 	"github.com/mieubrisse/cli-journal-go/components/filterable_list"
 	"github.com/mieubrisse/cli-journal-go/components/filterable_list_item"
-	"github.com/mieubrisse/cli-journal-go/data_structures/content_item"
 	"github.com/mieubrisse/cli-journal-go/global_styles"
 	"github.com/mieubrisse/cli-journal-go/helpers"
 	"github.com/mieubrisse/vim-bubble/vim"
 	"github.com/sahilm/fuzzy"
 	"sort"
-	"time"
 )
 
 const (
@@ -45,9 +43,9 @@ type Model struct {
 
 	filterPane filter_pane.Model
 
-	filterTabCompletionPane filterable_list.Component
+	filterTabCompletionPane filterable_list.Component[filterable_list_item.Component]
 
-	contentList filterable_content_list.Model
+	contentList entry_list.Model
 
 	tags []string
 
@@ -60,7 +58,7 @@ func New(
 ) Model {
 	createContentForm := new_entry_form.New()
 
-	contentList := filterable_content_list.New(content)
+	contentList := entry_list.New(content)
 	contentList.Focus()
 
 	filterPane := filter_pane.New()
@@ -120,7 +118,7 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Clear all filters
 				model.filterPane.Clear()
 				nameFilterLines, tagFilterLines := model.filterPane.GetFilterLines()
-				model.contentList = model.contentList.SetFilters(nameFilterLines, tagFilterLines)
+				model.contentList.SetFilters(nameFilterLines, tagFilterLines)
 				model.filterTabCompletionPane.SetItems([]filterable_list_item.Component{})
 
 				return model, nil
@@ -169,7 +167,7 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			// Make sure to let the content list know about the changes
 			nameFilterList, tagFilterList := model.filterPane.GetFilterLines()
-			model.contentList = model.contentList.SetFilters(nameFilterList, tagFilterList)
+			model.contentList.SetFilters(nameFilterList, tagFilterList)
 
 			// Update the tab-contents pane with changes, displaying nothing if the line isn't a tag filter line
 			filterText, isTagFilter := model.filterPane.GetCurrentFilter()
@@ -203,13 +201,16 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, model.contentList.Focus())
 				return model, tea.Batch(cmds...)
 			case "enter":
-				// Create the new content piece
-				content := content_item.ContentItem{
-					Timestamp: time.Now(),
-					Name:      model.createContentForm.GetNameValue(),
-					Tags:      []string{},
-				}
-				model.contentList.AddItem(content)
+				// TODO reenable
+				/*
+					// Create the new content piece
+					content := content_item.ContentItem{
+						Timestamp: time.Now(),
+						Name:      model.createContentForm.GetNameValue(),
+						Tags:      []string{},
+					}
+					model.contentList.AddItem(content)
+				*/
 
 				model.createContentForm.Clear()
 

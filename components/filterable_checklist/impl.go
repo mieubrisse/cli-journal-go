@@ -4,13 +4,12 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mieubrisse/cli-journal-go/components/filterable_checklist_item"
 	"github.com/mieubrisse/cli-journal-go/components/filterable_list"
-	"github.com/mieubrisse/cli-journal-go/components/filterable_list_item"
 )
 
-type implementation struct {
-	innerList filterable_list.Component
+type implementation[T filterable_checklist_item.Component] struct {
+	innerList filterable_list.Component[T]
 
-	items []filterable_checklist_item.Component
+	items []T
 
 	// Indices of selected items within the *unfiltered* list
 	selectedItemIndices map[int]bool
@@ -21,13 +20,9 @@ type implementation struct {
 }
 
 // TODO get rid of items in constructor
-func New(items []filterable_checklist_item.Component) Component {
-	castedItems := make([]filterable_list_item.Component, len(items))
-	for idx, item := range items {
-		castedItems[idx] = filterable_list_item.Component(item)
-	}
-	inner := filterable_list.New(castedItems)
-	return &implementation{
+func New[T filterable_checklist_item.Component](items []T) Component[T] {
+	inner := filterable_list.New[T](items)
+	return &implementation[T]{
 		innerList:           inner,
 		items:               items,
 		selectedItemIndices: make(map[int]bool, 0),
@@ -37,11 +32,11 @@ func New(items []filterable_checklist_item.Component) Component {
 	}
 }
 
-func (impl *implementation) View() string {
+func (impl *implementation[T]) View() string {
 	return impl.innerList.View()
 }
 
-func (impl *implementation) Update(msg tea.Msg) tea.Cmd {
+func (impl *implementation[T]) Update(msg tea.Msg) tea.Cmd {
 	// Do nothing on non-Keymsgs
 	switch msg.(type) {
 	case tea.KeyMsg:
@@ -75,31 +70,27 @@ func (impl *implementation) Update(msg tea.Msg) tea.Cmd {
 	return returnCmd
 }
 
-func (impl implementation) GetItems() []filterable_checklist_item.Component {
+func (impl implementation[T]) GetItems() []T {
 	return impl.items
 }
 
-func (impl *implementation) SetItems(items []filterable_checklist_item.Component) {
+func (impl *implementation[T]) SetItems(items []T) {
 	// TODO something about preserving the selected item indices when the list changes??
 	impl.items = items
 	impl.selectedItemIndices = make(map[int]bool, 0)
 
-	castedItems := make([]filterable_list_item.Component, len(items))
-	for idx, item := range items {
-		castedItems[idx] = filterable_list_item.Component(item)
-	}
-	impl.innerList.SetItems(castedItems)
+	impl.innerList.SetItems(items)
 }
 
-func (impl implementation) GetFilterableList() filterable_list.Component {
+func (impl implementation[T]) GetFilterableList() filterable_list.Component[T] {
 	return impl.innerList
 }
 
-func (impl implementation) GetSelectedItemOriginalIndices() map[int]bool {
+func (impl implementation[T]) GetSelectedItemOriginalIndices() map[int]bool {
 	return impl.selectedItemIndices
 }
 
-func (impl *implementation) ToggleHighlightedItemSelection() {
+func (impl *implementation[T]) ToggleHighlightedItemSelection() {
 	filteredItemOriginalIndicies := impl.innerList.GetFilteredItemIndices()
 	if len(filteredItemOriginalIndicies) == 0 {
 		return
@@ -110,7 +101,7 @@ func (impl *implementation) ToggleHighlightedItemSelection() {
 	impl.setItemSelection(itemOriginalIdx, !isSelected)
 }
 
-func (impl *implementation) SetHighlightedItemSelection(isSelected bool) {
+func (impl *implementation[T]) SetHighlightedItemSelection(isSelected bool) {
 	filteredItemIndices := impl.innerList.GetFilteredItemIndices()
 	if len(filteredItemIndices) == 0 {
 		return
@@ -122,7 +113,7 @@ func (impl *implementation) SetHighlightedItemSelection(isSelected bool) {
 	impl.setItemSelection(highlightedItemIdxInOriginalList, isSelected)
 }
 
-func (impl *implementation) SetAllViewableItemsSelection(isSelected bool) {
+func (impl *implementation[T]) SetAllViewableItemsSelection(isSelected bool) {
 	filteredItemIndices := impl.innerList.GetFilteredItemIndices()
 	if len(filteredItemIndices) == 0 {
 		return
@@ -133,39 +124,39 @@ func (impl *implementation) SetAllViewableItemsSelection(isSelected bool) {
 	}
 }
 
-func (impl *implementation) SetAllItemsSelection(isSelected bool) {
+func (impl *implementation[T]) SetAllItemsSelection(isSelected bool) {
 	for idx := range impl.items {
 		impl.setItemSelection(idx, isSelected)
 	}
 }
 
-func (impl *implementation) Resize(width int, height int) {
+func (impl *implementation[T]) Resize(width int, height int) {
 	impl.width = width
 	impl.height = height
 
 	impl.innerList.Resize(width, height)
 }
 
-func (impl implementation) GetHeight() int {
+func (impl implementation[T]) GetHeight() int {
 	return impl.height
 }
 
-func (impl implementation) GetWidth() int {
+func (impl implementation[T]) GetWidth() int {
 	return impl.width
 }
 
-func (impl *implementation) Focus() tea.Cmd {
+func (impl *implementation[T]) Focus() tea.Cmd {
 	impl.isFocused = true
 
 	return impl.innerList.Focus()
 }
 
-func (impl *implementation) Blur() tea.Cmd {
+func (impl *implementation[T]) Blur() tea.Cmd {
 	impl.isFocused = false
 	return impl.innerList.Blur()
 }
 
-func (impl implementation) Focused() bool {
+func (impl implementation[T]) Focused() bool {
 	return impl.isFocused
 }
 
@@ -175,7 +166,7 @@ func (impl implementation) Focused() bool {
 //
 // ====================================================================================================
 // setItemSelection sets the selection of the given item, and does the appropriate bookkeeping
-func (impl *implementation) setItemSelection(itemIdx int, isSelected bool) {
+func (impl *implementation[T]) setItemSelection(itemIdx int, isSelected bool) {
 	item := impl.items[itemIdx]
 	item.SetSelection(isSelected)
 
