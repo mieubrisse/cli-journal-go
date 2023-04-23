@@ -156,7 +156,7 @@ func (model Model) SetFilters(nameFilterLines []string, tagFilterLines []string)
 	return model
 }
 
-func (model Model) AddItem(content content_item.ContentItem) Model {
+func (model *Model) AddItem(content content_item.ContentItem) {
 	model.allContent = append(
 		[]content_item.ContentItem{content},
 		model.allContent...,

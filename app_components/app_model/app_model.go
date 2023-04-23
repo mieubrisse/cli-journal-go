@@ -195,29 +195,31 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else if model.createContentForm.Focused() {
 			switch msg.String() {
 			case "esc":
-				cmds := make([]tea.Cmd, 0)
 				// Back out of the create content modal
-				model.createContentForm = model.createContentForm.Clear().
-					Blur()
-				model.contentList = model.contentList.Focus()
-				return model, nil
+				model.createContentForm.Clear()
+
+				cmds := make([]tea.Cmd, 0)
+				cmds = append(cmds, model.createContentForm.Blur())
+				cmds = append(cmds, model.contentList.Focus())
+				return model, tea.Batch(cmds...)
 			case "enter":
 				// Create the new content piece
 				content := content_item.ContentItem{
 					Timestamp: time.Now(),
-					Name:      model.createContentForm.GetValue(),
+					Name:      model.createContentForm.GetNameValue(),
 					Tags:      []string{},
 				}
-				model.contentList = model.contentList.AddItem(content).
-					Focus()
-				model.createContentForm = model.createContentForm.Clear().
-					Blur()
+				model.contentList.AddItem(content)
 
-				return model, nil
+				model.createContentForm.Clear()
+
+				cmds := make([]tea.Cmd, 0)
+				cmds = append(cmds, model.createContentForm.Blur())
+				cmds = append(cmds, model.contentList.Focus())
+				return model, tea.Batch(cmds...)
 			}
 
-			var cmd tea.Cmd
-			model.createContentForm, cmd = model.createContentForm.Update(msg)
+			cmd := model.createContentForm.Update(msg)
 			return model, cmd
 		}
 	case tea.WindowSizeMsg:
@@ -281,11 +283,11 @@ func (model Model) Resize(width int, height int) Model {
 	// Leave one blank line for filters label
 	contentListHeight := helpers.GetMaxInt(0, displaySpaceHeight-filterPaneHeight-1)
 
-	model.contentList = model.contentList.Resize(displaySpaceWidth, contentListHeight)
+	model.contentList.Resize(displaySpaceWidth, contentListHeight)
 
 	createContentModalWidth := helpers.GetMinInt(model.width, maxCreateContentModalWidth)
 	createContentModalHeight := helpers.GetMinInt(model.height, maxCreateContentModalHeight)
-	model.createContentForm = model.createContentForm.Resize(createContentModalWidth, createContentModalHeight)
+	model.createContentForm.Resize(createContentModalWidth, createContentModalHeight)
 
 	return model
 }
