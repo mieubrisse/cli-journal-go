@@ -7,11 +7,14 @@ import (
 	"github.com/mieubrisse/cli-journal-go/components/filterable_content_list"
 	"github.com/mieubrisse/cli-journal-go/components/filterable_item_list"
 	"github.com/mieubrisse/cli-journal-go/components/form"
+	"github.com/mieubrisse/cli-journal-go/components/text_input"
 	"github.com/mieubrisse/cli-journal-go/data_structures/content_item"
 	"github.com/mieubrisse/cli-journal-go/global_styles"
 	"github.com/mieubrisse/cli-journal-go/helpers"
 	"github.com/mieubrisse/vim-bubble/vim"
 	"github.com/sahilm/fuzzy"
+	"regexp"
+	"sort"
 	"time"
 )
 
@@ -23,6 +26,7 @@ const (
 )
 
 // "Constants"
+var acceptableFormFieldRegex = regexp.MustCompile("^[a-zA-Z0-9.-]+$")
 var horizontalPadThresholdsByTerminalWidth = map[int]int{
 	0:   0,
 	60:  1,
@@ -32,20 +36,10 @@ var verticalPadThresholdsByTerminalHeight = map[int]int{
 	0:  0,
 	40: 1,
 }
-
 var filtersLabelLine = lipgloss.NewStyle().
 	Foreground(global_styles.Cyan).
 	Bold(true).
 	Render("FILTERS")
-
-var TESTTEST = []string{
-	"foo",
-	"bar",
-	"bang bar",
-	"yes",
-	"this is also stuff",
-	"general-reference/wealthdraft",
-}
 
 type Model struct {
 	createContentForm form.Model
@@ -56,20 +50,43 @@ type Model struct {
 
 	contentList filterable_content_list.Model
 
+	tags []string
+
 	height int
 	width  int
 }
 
 func New(
-	createContentForm form.Model,
-	contentList filterable_content_list.Model,
-	filterPane filter_pane.Model,
+	content []content_item.ContentItem,
 ) Model {
-	completionItems := make([]tabCompletionItem, len(TESTTEST))
-	for idx, TEST := range TESTTEST {
-		completionItems[idx] = tabCompletionItem{completion: TEST}
+	createContentFormInput := text_input.New("Name: ")
+	createContentForm := form.New(
+		"Create Content",
+		createContentFormInput,
+		func(text string) bool {
+			return acceptableFormFieldRegex.MatchString(text)
+		},
+	)
+
+	contentList := filterable_content_list.New(content)
+	contentList.Focus()
+
+	filterPane := filter_pane.New()
+
+	deduplicatedTags := make(map[string]bool, 0)
+	for _, contentItem := range content {
+		for _, tag := range contentItem.Tags {
+			deduplicatedTags[tag] = true
+		}
 	}
-	completionPane := filterable_item_list.New[tabCompletionItem](completionItems)
+
+	sortedTags := make([]string, 0, len(deduplicatedTags))
+	for tag := range deduplicatedTags {
+		sortedTags = append(sortedTags, tag)
+	}
+	sort.Strings(sortedTags)
+
+	completionPane := filterable_item_list.New[tabCompletionItem]([]tabCompletionItem{})
 
 	return Model{
 		createContentForm:       createContentForm,
@@ -78,6 +95,7 @@ func New(
 		contentList:             contentList,
 		height:                  0,
 		width:                   0,
+		tags:                    sortedTags,
 	}
 }
 
@@ -173,17 +191,17 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			tabCompletionItems := make([]tabCompletionItem, 0)
 			if isTagFilter {
 				if len(filterText) > 0 {
-					matches := fuzzy.Find(filterText, TESTTEST)
+					matches := fuzzy.Find(filterText, model.tags)
 
 					tabCompletionItems = make([]tabCompletionItem, len(matches))
 					for idx, match := range matches {
 						tabCompletionItems[idx] = tabCompletionItem{
-							completion: TESTTEST[match.Index],
+							completion: model.tags[match.Index],
 						}
 					}
 				} else {
-					tabCompletionItems = make([]tabCompletionItem, len(TESTTEST))
-					for idx, TEST := range TESTTEST {
+					tabCompletionItems = make([]tabCompletionItem, len(model.tags))
+					for idx, TEST := range model.tags {
 						tabCompletionItems[idx] = tabCompletionItem{completion: TEST}
 					}
 				}

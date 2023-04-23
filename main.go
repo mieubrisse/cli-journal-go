@@ -4,10 +4,6 @@ import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mieubrisse/cli-journal-go/components/app"
-	"github.com/mieubrisse/cli-journal-go/components/filter_pane"
-	"github.com/mieubrisse/cli-journal-go/components/filterable_content_list"
-	"github.com/mieubrisse/cli-journal-go/components/form"
-	"github.com/mieubrisse/cli-journal-go/components/text_input"
 	"github.com/mieubrisse/cli-journal-go/data_structures/content_item"
 	"os"
 	"regexp"
@@ -45,27 +41,7 @@ func main() {
 		},
 	}
 
-	createContentFormInput := text_input.New("Name: ")
-	createContentForm := form.New(
-		"Create Content",
-		createContentFormInput,
-		func(text string) bool {
-			return acceptableFormFieldRegex.MatchString(text)
-		},
-	)
-
-	/*
-		nameFilterInput := text_input.New("🔎 ")
-		tagFilterInput := text_input.New("🏷️  ")
-
-	*/
-
-	contentList := filterable_content_list.New(content)
-	contentList.Focus()
-
-	filterPane := filter_pane.New()
-
-	topLevelModel := app.New(createContentForm, contentList, filterPane)
+	topLevelModel := app.New(content)
 
 	p := tea.NewProgram(topLevelModel, tea.WithAltScreen())
 
