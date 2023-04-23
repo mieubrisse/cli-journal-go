@@ -462,16 +462,6 @@ func (model Model) renderContentLine(content content_item.ContentItem, isContent
 		nameStr,
 		tagsStr,
 	)
-	/*
-		line := fmt.Sprintf(
-			"%s  %s %s     %s",
-			maybeCheckmark,
-			timestampStr,
-			content.Name,
-			joinedTags,
-		)
-
-	*/
 
 	return baseLineStyle.Copy().Width(model.width).Render(line)
 }

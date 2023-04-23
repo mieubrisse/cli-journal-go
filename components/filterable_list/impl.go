@@ -149,6 +149,21 @@ func (impl *implementation) Scroll(scrollOffset int) {
 	if newHighlightedItemIdx >= len(impl.filteredItemsOriginalIndices) {
 		newHighlightedItemIdx = len(impl.filteredItemsOriginalIndices) - 1
 	}
+
+	if newHighlightedItemIdx == impl.highlightedItemIdx {
+		return
+	}
+
+	// De-highlight the previous item
+	oldHighlightOriginalIdx := impl.filteredItemsOriginalIndices[impl.highlightedItemIdx]
+	oldItem := impl.unfilteredItems[oldHighlightOriginalIdx]
+	oldItem.SetHighlighted(false)
+
+	// Highlight the new item
+	newHighlightOriginalIdx := impl.filteredItemsOriginalIndices[newHighlightedItemIdx]
+	newItem := impl.unfilteredItems[newHighlightOriginalIdx]
+	newItem.SetHighlighted(false)
+
 	impl.highlightedItemIdx = newHighlightedItemIdx
 }
 

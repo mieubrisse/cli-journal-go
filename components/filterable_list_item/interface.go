@@ -7,5 +7,6 @@ import (
 type Component interface {
 	components.Component
 
+	SetHighlighted(isHighlighted bool)
 	GetValue() string
 }
