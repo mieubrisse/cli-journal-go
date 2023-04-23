@@ -129,6 +129,7 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				model.filterPane = model.filterPane.Clear()
 				nameFilterLines, tagFilterLines := model.filterPane.GetFilterLines()
 				model.contentList = model.contentList.SetFilters(nameFilterLines, tagFilterLines)
+				model.filterTabCompletionPane = model.filterTabCompletionPane.SetItems([]tabCompletionItem{})
 
 				return model, nil
 			case "n":

@@ -154,5 +154,6 @@ func (model Model) ReplaceCurrentFilter(filterText string, isTagFilter bool) Mod
 		newFilter = tagFilterLineLeader + filterText
 	}
 	model.input = model.input.ReplaceLine(newFilter)
+	
 	return model
 }
