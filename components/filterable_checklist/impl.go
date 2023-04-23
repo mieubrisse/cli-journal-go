@@ -20,11 +20,11 @@ type implementation[T filterable_checklist_item.Component] struct {
 }
 
 // TODO get rid of items in constructor
-func New[T filterable_checklist_item.Component](items []T) Component[T] {
-	inner := filterable_list.New[T](items)
+func New[T filterable_checklist_item.Component]() Component[T] {
+	inner := filterable_list.New[T]()
 	return &implementation[T]{
 		innerList:           inner,
-		items:               items,
+		items:               make([]T, 0),
 		selectedItemIndices: make(map[int]bool, 0),
 		isFocused:           false,
 		width:               0,

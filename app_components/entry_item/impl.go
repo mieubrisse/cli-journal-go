@@ -107,7 +107,7 @@ func (impl implementation) GetValue() string {
 	panic("Implement me!")
 }
 
-func (impl implementation) SetHighlighted(isHighlighted bool) {
+func (impl *implementation) SetHighlighted(isHighlighted bool) {
 	impl.isHighlighted = isHighlighted
 }
 

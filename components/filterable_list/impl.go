@@ -25,15 +25,10 @@ type implementation[T filterable_list_item.Component] struct {
 	height    int
 }
 
-func New[T filterable_list_item.Component](items []T) Component[T] {
-	filteredIndices := []int{}
-	for idx := range items {
-		filteredIndices = append(filteredIndices, idx)
-	}
-
+func New[T filterable_list_item.Component]() Component[T] {
 	return &implementation[T]{
-		unfilteredItems:              items,
-		filteredItemsOriginalIndices: filteredIndices,
+		unfilteredItems:              make([]T, 0),
+		filteredItemsOriginalIndices: make([]int, 0),
 		highlightedItemIdx:           0,
 		width:                        0,
 		height:                       0,
@@ -41,6 +36,10 @@ func New[T filterable_list_item.Component](items []T) Component[T] {
 }
 
 func (impl implementation[T]) View() string {
+	if len(impl.filteredItemsOriginalIndices) == 0 {
+		return ""
+	}
+
 	/*
 		baseLineStyle := lipgloss.NewStyle().
 			Width(impl.width)
@@ -145,7 +144,7 @@ func (impl *implementation[T]) UpdateFilter(newFilter func(idx int, item T) bool
 	// This is a hack to indicate "the filtered list was empty, so there's no highlighted item original idx"
 	oldHighlightedItemOriginalIdx := -1
 
-	// If there are items being displayed, de-highlight the current item (if there are
+	// If there are items being displayed, de-highlight the current item (if there are any)
 	if len(impl.filteredItemsOriginalIndices) > 0 {
 		oldHighlightedItemOriginalIdx = impl.filteredItemsOriginalIndices[impl.highlightedItemIdx]
 		oldHighlightedItem := impl.unfilteredItems[oldHighlightedItemOriginalIdx]
@@ -174,7 +173,8 @@ func (impl *implementation[T]) UpdateFilter(newFilter func(idx int, item T) bool
 
 	// Highlight the new item (if possible)
 	if len(impl.filteredItemsOriginalIndices) > 0 {
-		item := impl.unfilteredItems[impl.highlightedItemIdx]
+		originalIdx := impl.filteredItemsOriginalIndices[impl.highlightedItemIdx]
+		item := impl.unfilteredItems[originalIdx]
 		item.SetHighlighted(true)
 	}
 }

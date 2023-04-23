@@ -26,7 +26,8 @@ type Model struct {
 
 // TODO replace content with contentProvider
 func New(content []entry_item.Component) Model {
-	checklist := filterable_checklist.New[entry_item.Component](content)
+	checklist := filterable_checklist.New[entry_item.Component]()
+	checklist.SetItems(content)
 
 	return Model{
 		checklist: checklist,

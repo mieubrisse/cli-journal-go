@@ -76,7 +76,7 @@ func New(
 	}
 	sort.Strings(sortedTags)
 
-	completionPane := filterable_list.New([]filterable_list_item.Component{})
+	completionPane := filterable_list.New[filterable_list_item.Component]()
 
 	return Model{
 		createContentForm:       createContentForm,
@@ -127,8 +127,6 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, model.contentList.Blur())
 				cmds = append(cmds, model.createContentForm.Focus())
 				return model, tea.Batch(cmds...)
-			case "d":
-				panic("Implement Delete!")
 			}
 
 			cmd := model.contentList.Update(msg)
