@@ -3,8 +3,11 @@ package new_entry_form
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mieubrisse/cli-journal-go/components/filterable_list"
+	"github.com/mieubrisse/cli-journal-go/components/filterable_list_item"
 	"github.com/mieubrisse/cli-journal-go/components/text_input"
 	"github.com/mieubrisse/cli-journal-go/global_styles"
+	"github.com/mieubrisse/vim-bubble/vim"
 	"regexp"
 )
 
@@ -20,9 +23,9 @@ var acceptableNameRegex = regexp.MustCompile("^[a-zA-Z0-9.-]+$")
 // TODO something about a border?
 
 type implementation struct {
-	// TODO more fields
-	nameInput     text_input.Model
-	nameValidator func(text string) bool
+	input vim.Model
+
+	tabCompletionPane filterable_list.Component[filterable_list_item.Component]
 
 	isFocused bool
 
@@ -41,10 +44,6 @@ func New() Component {
 	}
 	impl.recalculateInputColors()
 	return &impl
-}
-
-func (impl implementation) Init() tea.Cmd {
-	return nil
 }
 
 func (impl implementation) Update(msg tea.Msg) tea.Cmd {

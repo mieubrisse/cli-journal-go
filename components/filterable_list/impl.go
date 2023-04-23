@@ -160,6 +160,7 @@ func (impl *implementation[T]) UpdateFilter(newFilter func(idx int, item T) bool
 		if newFilter(idx, item) {
 			newFilteredItemOriginalIndices = append(newFilteredItemOriginalIndices, idx)
 
+			// TODO maybe remove the highlight-preserving??? Seems confusing
 			// If the previously-highlighted item also exists in the post-filter list,
 			// leave it highlighted
 			if idx == oldHighlightedItemOriginalIdx {
