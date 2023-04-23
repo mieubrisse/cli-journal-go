@@ -175,7 +175,7 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// The user is tab-completing
 				completionItems := model.filterTabCompletionPane.GetFilteredItems()
 				if len(completionItems) > 0 {
-					highlightedCompletionIdx := model.filterTabCompletionPane.GetHighlightedItemIdx()
+					highlightedCompletionIdx := model.filterTabCompletionPane.GetHighlightedItemIndex()
 					selectedCompletion := completionItems[highlightedCompletionIdx]
 					model.filterPane = model.filterPane.ReplaceCurrentFilter(selectedCompletion.completion, true)
 				}
