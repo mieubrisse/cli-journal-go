@@ -6,6 +6,7 @@ import (
 	"github.com/mieubrisse/cli-journal-go/components/filter_pane"
 	"github.com/mieubrisse/cli-journal-go/components/filterable_content_list"
 	"github.com/mieubrisse/cli-journal-go/components/filterable_list"
+	"github.com/mieubrisse/cli-journal-go/components/filterable_list_item"
 	"github.com/mieubrisse/cli-journal-go/components/form"
 	"github.com/mieubrisse/cli-journal-go/components/text_block"
 	"github.com/mieubrisse/cli-journal-go/components/text_input"
@@ -47,7 +48,7 @@ type Model struct {
 
 	filterPane filter_pane.Model
 
-	filterTabCompletionPane filterable_list.Model[text_block.TextBlockComponent]
+	filterTabCompletionPane filterable_list.FilterableListComponent[filterable_list_item.FilterableListItemComponent]
 
 	contentList filterable_content_list.Model
 
@@ -87,7 +88,7 @@ func New(
 	}
 	sort.Strings(sortedTags)
 
-	completionPane := filterable_list.New[text_block.TextBlockComponent]([]text_block.TextBlockComponent{})
+	completionPane := filterable_list.New[filterable_list.FilterableListComponent()]([]text_block.TextBlockComponent{})
 
 	return Model{
 		createContentForm:       createContentForm,

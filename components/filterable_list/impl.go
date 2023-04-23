@@ -3,7 +3,7 @@ package filterable_list
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/mieubrisse/cli-journal-go/components/list_item"
+	"github.com/mieubrisse/cli-journal-go/components/filterable_list_item"
 	"github.com/mieubrisse/cli-journal-go/global_styles"
 	"github.com/mieubrisse/cli-journal-go/helpers"
 	"strings"
@@ -12,7 +12,7 @@ import (
 /*
 Component for displaying a scrollable, filterable list of items
 */
-type Model[T list_item.ListItemComponent] struct {
+type implementation[T filterable_list_item.FilterableListItemComponent] struct {
 	unfilteredItems []T
 
 	// The indices of the filtered items within the unfiltered items list
@@ -26,13 +26,13 @@ type Model[T list_item.ListItemComponent] struct {
 	height    int
 }
 
-func New[T list_item.ListItemComponent](items []T) Model[T] {
+func New[T filterable_list_item.FilterableListItemComponent](items []T) implementation[T] {
 	filteredIndices := []int{}
 	for idx := range items {
 		filteredIndices = append(filteredIndices, idx)
 	}
 
-	return Model[T]{
+	return implementation[T]{
 		unfilteredItems:              items,
 		filteredItemsOriginalIndices: filteredIndices,
 		highlightedItemIdx:           0,
@@ -41,9 +41,9 @@ func New[T list_item.ListItemComponent](items []T) Model[T] {
 	}
 }
 
-func (model Model[T]) View() string {
+func (impl implementation[T]) View() string {
 	baseLineStyle := lipgloss.NewStyle().
-		Width(model.width)
+		Width(impl.width)
 
 	// As aesthetic choices, when there are more item lines than display lines:
 	// 1. We want the entire list to scroll around the cursor if it's in the center of the screen, rather than
@@ -54,12 +54,12 @@ func (model Model[T]) View() string {
 	// The easiest way to accomplish this is to calculate the range of acceptable first-line indexes of the view,
 	//   which will range from [0, num_items - num_display_lines], and when the user is in the middle of the list
 	//   the view will have the cursor line in the center
-	halfHeight := model.height / 2
+	halfHeight := impl.height / 2
 
 	// Ensure that, when near the bottom of the list, the cursor is no longer centered and scrolls to the bottom
 	firstDisplayedLineIdxInclusive := helpers.GetMinInt(
-		model.highlightedItemIdx-halfHeight,
-		len(model.filteredItemsOriginalIndices)-model.height,
+		impl.highlightedItemIdx-halfHeight,
+		len(impl.filteredItemsOriginalIndices)-impl.height,
 	)
 
 	// Ensure that, when near the top of the list, the cursor is no longer centered and scrolls to the top
@@ -69,24 +69,24 @@ func (model Model[T]) View() string {
 	)
 
 	lastDisplayedLineIdxExclusive := helpers.GetMinInt(
-		len(model.filteredItemsOriginalIndices),
-		firstDisplayedLineIdxInclusive+model.height,
+		len(impl.filteredItemsOriginalIndices),
+		firstDisplayedLineIdxInclusive+impl.height,
 	)
 
 	if firstDisplayedLineIdxInclusive == lastDisplayedLineIdxExclusive {
 		return ""
 	}
 
-	displayedItems := model.filteredItemsOriginalIndices[firstDisplayedLineIdxInclusive:lastDisplayedLineIdxExclusive]
+	displayedItems := impl.filteredItemsOriginalIndices[firstDisplayedLineIdxInclusive:lastDisplayedLineIdxExclusive]
 
-	viewableLinesHighlightedItemIdx := model.highlightedItemIdx - firstDisplayedLineIdxInclusive
+	viewableLinesHighlightedItemIdx := impl.highlightedItemIdx - firstDisplayedLineIdxInclusive
 
 	resultLines := []string{}
 	for idx, originalItemIdx := range displayedItems {
-		item := model.unfilteredItems[originalItemIdx]
+		item := impl.unfilteredItems[originalItemIdx]
 
 		lineStyle := baseLineStyle
-		if model.isFocused && idx == viewableLinesHighlightedItemIdx {
+		if impl.isFocused && idx == viewableLinesHighlightedItemIdx {
 			lineStyle = baseLineStyle.Copy().Background(global_styles.FocusedComponentBackgroundColor).Bold(true)
 		}
 		renderedLine := lineStyle.Render(item.View())
@@ -99,101 +99,101 @@ func (model Model[T]) View() string {
 	// TODO truncating long lines by printable char
 
 	return lipgloss.NewStyle().
-		Width(model.width).
-		Height(model.height).
-		MaxWidth(model.width).
-		MaxHeight(model.height).
+		Width(impl.width).
+		Height(impl.height).
+		MaxWidth(impl.width).
+		MaxHeight(impl.height).
 		Render(result)
 }
 
-func (model *Model[T]) UpdateFilter(newFilter func(int, T) bool) {
-	highlightedOriginalItemIdx := model.filteredItemsOriginalIndices[model.highlightedItemIdx]
+func (impl *implementation[T]) UpdateFilter(newFilter func(int, T) bool) {
+	highlightedOriginalItemIdx := impl.filteredItemsOriginalIndices[impl.highlightedItemIdx]
 
 	// By default, assume that the highlighted item in the pre-filter list doesn't exist in the
 	// post-filter list (but we'll fix this below if the assumption is false)
-	model.highlightedItemIdx = 0
+	impl.highlightedItemIdx = 0
 
 	newFilteredItemOriginalIndices := []int{}
-	for idx, item := range model.unfilteredItems {
+	for idx, item := range impl.unfilteredItems {
 		if newFilter(idx, item) {
 			newFilteredItemOriginalIndices = append(newFilteredItemOriginalIndices, idx)
 
 			// If the highlighted item in the pre-filter list also exists in the post-filter list,
 			// leave it highlighted
 			if idx == highlightedOriginalItemIdx {
-				model.highlightedItemIdx = len(newFilteredItemOriginalIndices) - 1
+				impl.highlightedItemIdx = len(newFilteredItemOriginalIndices) - 1
 			}
 		}
 	}
-	model.filteredItemsOriginalIndices = newFilteredItemOriginalIndices
+	impl.filteredItemsOriginalIndices = newFilteredItemOriginalIndices
 }
 
-func (model *Model[T]) SetItems(items []T) {
+func (impl *implementation[T]) SetItems(items []T) {
 	filteredIndices := []int{}
 	for idx := range items {
 		filteredIndices = append(filteredIndices, idx)
 	}
 
-	model.unfilteredItems = items
-	model.filteredItemsOriginalIndices = filteredIndices
-	model.highlightedItemIdx = 0
+	impl.unfilteredItems = items
+	impl.filteredItemsOriginalIndices = filteredIndices
+	impl.highlightedItemIdx = 0
 }
 
 // Scrolls the highlighted selection down or up by the specified number of items, with safeguards to
 // prevent scrolling off the ends of the list
-func (model *Model[T]) Scroll(scrollOffset int) {
-	newHighlightedItemIdx := model.highlightedItemIdx + scrollOffset
+func (impl *implementation[T]) Scroll(scrollOffset int) {
+	newHighlightedItemIdx := impl.highlightedItemIdx + scrollOffset
 	if newHighlightedItemIdx < 0 {
 		newHighlightedItemIdx = 0
 	}
-	if newHighlightedItemIdx >= len(model.filteredItemsOriginalIndices) {
-		newHighlightedItemIdx = len(model.filteredItemsOriginalIndices) - 1
+	if newHighlightedItemIdx >= len(impl.filteredItemsOriginalIndices) {
+		newHighlightedItemIdx = len(impl.filteredItemsOriginalIndices) - 1
 	}
-	model.highlightedItemIdx = newHighlightedItemIdx
+	impl.highlightedItemIdx = newHighlightedItemIdx
 }
 
-func (model Model[T]) GetItems() []T {
-	return model.unfilteredItems
+func (impl implementation[T]) GetItems() []T {
+	return impl.unfilteredItems
 }
 
 // Gets the indices (within the original list) of the items currently being displayed
-func (model Model[T]) GetFilteredItemIndices() []int {
-	return model.filteredItemsOriginalIndices
+func (impl implementation[T]) GetFilteredItemIndices() []int {
+	return impl.filteredItemsOriginalIndices
 }
 
 // GetHighlightedItemIndex returns the index *within the filtered list* of the highlighted item
-func (model Model[T]) GetHighlightedItemIndex() int {
-	return model.highlightedItemIdx
+func (impl implementation[T]) GetHighlightedItemIndex() int {
+	return impl.highlightedItemIdx
 }
 
-func (model *Model[T]) Resize(width int, height int) {
-	model.width = width
-	model.height = height
+func (impl *implementation[T]) Resize(width int, height int) {
+	impl.width = width
+	impl.height = height
 
-	for _, item := range model.unfilteredItems {
+	for _, item := range impl.unfilteredItems {
 		// TODO Allow items to wrap (but requires a whole viewing framework)
 		item.Resize(width, 1)
 	}
 }
 
-func (model Model[T]) GetHeight() int {
-	return model.height
+func (impl implementation[T]) GetHeight() int {
+	return impl.height
 }
 
-func (model Model[T]) GetWidth() int {
-	return model.width
+func (impl implementation[T]) GetWidth() int {
+	return impl.width
 }
 
-func (model *Model[T]) Focus() tea.Cmd {
-	model.isFocused = true
+func (impl *implementation[T]) Focus() tea.Cmd {
+	impl.isFocused = true
 	return nil
 }
 
-func (model *Model[T]) Blur() tea.Cmd {
-	model.isFocused = false
+func (impl *implementation[T]) Blur() tea.Cmd {
+	impl.isFocused = false
 	return nil
 }
 
-func (model Model[T]) Focused() bool {
-	return model.isFocused
+func (impl implementation[T]) Focused() bool {
+	return impl.isFocused
 }

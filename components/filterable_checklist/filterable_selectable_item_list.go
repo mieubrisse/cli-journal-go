@@ -2,12 +2,12 @@ package filterable_checklist
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/mieubrisse/cli-journal-go/components/checklist_item"
+	"github.com/mieubrisse/cli-journal-go/components/filterable_checklist_item"
 	"github.com/mieubrisse/cli-journal-go/components/filterable_list"
 )
 
-type Model[T checklist_item.ChecklistItemComponent] struct {
-	filterableList filterable_list.Model[T]
+type implementation[T filterable_checklist_item.Component] struct {
+	filterableList filterable_list.FilterableListComponent[T]
 
 	items []T
 
@@ -23,81 +23,81 @@ func New() {
 
 }
 
-func (model Model[T]) Resize(width int, height int) Model[T] {
-	model.width = width
-	model.height = height
+func (impl implementation[T]) Resize(width int, height int) implementation[T] {
+	impl.width = width
+	impl.height = height
 
-	model.filterableList.Resize(width, height)
-	return model
+	impl.filterableList.Resize(width, height)
+	return impl
 }
 
-func (model Model[T]) GetHeight() int {
-	return model.height
+func (impl implementation[T]) GetHeight() int {
+	return impl.height
 }
 
-func (model Model[T]) GetWidth() int {
-	return model.width
+func (impl implementation[T]) GetWidth() int {
+	return impl.width
 }
 
-func (model *Model[T]) Focus() tea.Cmd {
-	model.isFocused = true
+func (impl *implementation[T]) Focus() tea.Cmd {
+	impl.isFocused = true
 
-	return model.filterableList.Focus()
+	return impl.filterableList.Focus()
 }
 
-func (model *Model[T]) Blur() tea.Cmd {
-	model.isFocused = false
-	return model.filterableList.Blur()
+func (impl *implementation[T]) Blur() tea.Cmd {
+	impl.isFocused = false
+	return impl.filterableList.Blur()
 }
 
-func (model Model[T]) Focused() bool {
-	return model.isFocused
+func (impl implementation[T]) Focused() bool {
+	return impl.isFocused
 }
 
-func (model *Model[T]) UpdateFilter(newFilter func(int, T) bool) {
-	model.filterableList.UpdateFilter(newFilter)
+func (impl *implementation[T]) UpdateFilter(newFilter func(int, T) bool) {
+	impl.filterableList.UpdateFilter(newFilter)
 }
 
-func (model *Model[T]) SetItems(items []T) {
-	model.filterableList.SetItems(items)
+func (impl *implementation[T]) SetItems(items []T) {
+	impl.filterableList.SetItems(items)
 }
 
-func (model *Model[T]) Scroll(scrollOffset int) {
-	model.filterableList.Scroll(scrollOffset)
+func (impl *implementation[T]) Scroll(scrollOffset int) {
+	impl.filterableList.Scroll(scrollOffset)
 }
 
-func (model Model[T]) GetItems() []T {
-	return model.items
+func (impl implementation[T]) GetItems() []T {
+	return impl.items
 }
 
-func (model Model[T]) GetFilteredItemIndices() []int {
-	return model.filterableList.GetFilteredItemIndices()
+func (impl implementation[T]) GetFilteredItemIndices() []int {
+	return impl.filterableList.GetFilteredItemIndices()
 }
 
-func (model Model[T]) GetHighlightedItemIndex() int {
-	return model.filterableList.GetHighlightedItemIndex()
+func (impl implementation[T]) GetHighlightedItemIndex() int {
+	return impl.filterableList.GetHighlightedItemIndex()
 }
 
-func (model *Model[T]) SetHighlightedItemSelection(isSelected bool) {
-	filteredItemIndices := model.GetFilteredItemIndices()
+func (impl *implementation[T]) SetHighlightedItemSelection(isSelected bool) {
+	filteredItemIndices := impl.GetFilteredItemIndices()
 	if len(filteredItemIndices) == 0 {
 		return
 	}
 
-	highlightedItemIdxInFilteredList := model.GetHighlightedItemIndex()
+	highlightedItemIdxInFilteredList := impl.GetHighlightedItemIndex()
 	highlightedItemIdxInOriginalList := filteredItemIndices[highlightedItemIdxInFilteredList]
 
-	model.setItemSelection(highlightedItemIdxInOriginalList, isSelected)
+	impl.setItemSelection(highlightedItemIdxInOriginalList, isSelected)
 }
 
-func (model *Model[T]) SetAllViewableItemsSelection(isSelected bool) {
-	filteredItemIndices := model.GetFilteredItemIndices()
+func (impl *implementation[T]) SetAllViewableItemsSelection(isSelected bool) {
+	filteredItemIndices := impl.GetFilteredItemIndices()
 	if len(filteredItemIndices) == 0 {
 		return
 	}
 
 	for _, originalItemIdx := range filteredItemIndices {
-		model.setItemSelection(originalItemIdx, isSelected)
+		impl.setItemSelection(originalItemIdx, isSelected)
 	}
 }
 
@@ -106,14 +106,14 @@ func (model *Model[T]) SetAllViewableItemsSelection(isSelected bool) {
 //	Private Helper Functions
 //
 // ====================================================================================================
-func (model Model[T]) setItemSelection(itemIdx int, isSelected bool) Model[T] {
-	item := model.items[itemIdx]
+func (impl implementation[T]) setItemSelection(itemIdx int, isSelected bool) implementation[T] {
+	item := impl.items[itemIdx]
 	item.SetSelection(isSelected)
 
 	if isSelected {
-		model.selectedItemIndices[itemIdx] = true
+		impl.selectedItemIndices[itemIdx] = true
 	} else {
-		delete(model.selectedItemIndices, itemIdx)
+		delete(impl.selectedItemIndices, itemIdx)
 	}
-	return model
+	return impl
 }

@@ -1,8 +1,8 @@
-package list_item
+package filterable_list_item
 
 import "github.com/mieubrisse/cli-journal-go/components"
 
-type ListItemComponent interface {
+type FilterableListItemComponent interface {
 	components.Component
 
 	GetValue() string
