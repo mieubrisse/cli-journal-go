@@ -1,4 +1,4 @@
-package components
+package framework
 
 type Component interface {
 	View() string

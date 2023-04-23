@@ -1,9 +1,11 @@
 package filterable_list_item
 
-import "github.com/mieubrisse/cli-journal-go/components"
+import (
+	"github.com/mieubrisse/cli-journal-go/components/framework"
+)
 
 type FilterableListItemComponent interface {
-	components.Component
+	framework.Component
 
 	GetValue() string
 }

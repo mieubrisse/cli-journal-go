@@ -1,10 +1,10 @@
 package filterable_list_item
 
 import (
-	"github.com/mieubrisse/cli-journal-go/components"
+	"github.com/mieubrisse/cli-journal-go/components/framework"
 )
 
-type implementation[T components.Component] struct {
+type implementation[T framework.Component] struct {
 	inner T
 
 	value string
@@ -13,7 +13,7 @@ type implementation[T components.Component] struct {
 	height int
 }
 
-func New[T components.Component](value string, innerComponent T) FilterableListItemComponent {
+func New[T framework.Component](value string, innerComponent T) FilterableListItemComponent {
 	return &implementation[T]{
 		inner:  innerComponent,
 		value:  value,

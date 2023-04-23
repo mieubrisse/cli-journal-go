@@ -1,12 +1,12 @@
 package tab_completion_item
 
 import (
-	"github.com/mieubrisse/cli-journal-go/components/filterable_list_item"
-	"github.com/mieubrisse/cli-journal-go/components/text_block"
+	"github.com/mieubrisse/cli-journal-go/components/framework/filterable_list_item"
+	text_block2 "github.com/mieubrisse/cli-journal-go/components/framework/text_block"
 )
 
 type implementation struct {
-	innerComponent text_block.TextBlockComponent
+	innerComponent text_block2.TextBlockComponent
 
 	contents string
 
@@ -15,7 +15,7 @@ type implementation struct {
 }
 
 func New(contents string) filterable_list_item.FilterableListItemComponent {
-	inner := text_block.New(contents)
+	inner := text_block2.New(contents)
 	return &implementation{
 		innerComponent: inner,
 		contents:       contents,

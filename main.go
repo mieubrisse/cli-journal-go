@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/mieubrisse/cli-journal-go/components/app"
+	"github.com/mieubrisse/cli-journal-go/components/app/app_model"
 	"github.com/mieubrisse/cli-journal-go/data_structures/content_item"
 	"os"
 	"regexp"
@@ -41,7 +41,7 @@ func main() {
 		},
 	}
 
-	topLevelModel := app.New(content)
+	topLevelModel := app_model.New(content)
 
 	p := tea.NewProgram(topLevelModel, tea.WithAltScreen())
 

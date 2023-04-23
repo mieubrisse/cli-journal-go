@@ -1,4 +1,4 @@
-package app
+package app_model
 
 import "github.com/mieubrisse/cli-journal-go/data_structures/content_item"
 
