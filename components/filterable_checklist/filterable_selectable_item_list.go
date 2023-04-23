@@ -7,7 +7,7 @@ import (
 )
 
 type implementation[T filterable_checklist_item.Component] struct {
-	filterableList filterable_list.FilterableListComponent[T]
+	filterableList filterable_list.Component[T]
 
 	items []T
 

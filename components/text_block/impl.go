@@ -11,7 +11,7 @@ type impl struct {
 	height int
 }
 
-func New(contents string) TextBlockComponent {
+func New(contents string) Component {
 	return &impl{
 		contents: contents,
 		width:    0,

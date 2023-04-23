@@ -4,7 +4,7 @@ import (
 	"github.com/mieubrisse/cli-journal-go/components"
 )
 
-type TextBlockComponent interface {
+type Component interface {
 	components.Component
 
 	// TODO remove this??

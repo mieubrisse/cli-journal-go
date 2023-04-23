@@ -26,13 +26,13 @@ type implementation struct {
 	height    int
 }
 
-func New(items []filterable_list_item.Component) implementation {
+func New(items []filterable_list_item.Component) Component {
 	filteredIndices := []int{}
 	for idx := range items {
 		filteredIndices = append(filteredIndices, idx)
 	}
 
-	return implementation{
+	return &implementation{
 		unfilteredItems:              items,
 		filteredItemsOriginalIndices: filteredIndices,
 		highlightedItemIdx:           0,

@@ -6,7 +6,7 @@ import (
 )
 
 type implementation struct {
-	innerComponent text_block.TextBlockComponent
+	innerComponent text_block.Component
 
 	contents string
 
