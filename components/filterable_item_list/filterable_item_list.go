@@ -3,6 +3,7 @@ package filterable_item_list
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mieubrisse/cli-journal-go/components"
 	"github.com/mieubrisse/cli-journal-go/global_styles"
 	"github.com/mieubrisse/cli-journal-go/helpers"
 	"strings"
@@ -11,7 +12,7 @@ import (
 /*
 Component for displaying a scrollable, filterable list of items
 */
-type Model[T FilterableListItem] struct {
+type Model[T components.Component] struct {
 	unfilteredItems []T
 
 	// The indices of the filtered items within the unfiltered items list
@@ -25,7 +26,7 @@ type Model[T FilterableListItem] struct {
 	height    int
 }
 
-func New[T FilterableListItem](items []T) Model[T] {
+func New[T components.Component](items []T) Model[T] {
 	filteredIndices := []int{}
 	for idx := range items {
 		filteredIndices = append(filteredIndices, idx)
@@ -38,10 +39,6 @@ func New[T FilterableListItem](items []T) Model[T] {
 		width:                        0,
 		height:                       0,
 	}
-}
-
-func (model Model[T]) Init() tea.Cmd {
-	return nil
 }
 
 func (model Model[T]) View() string {
@@ -92,7 +89,7 @@ func (model Model[T]) View() string {
 		if model.isFocused && idx == viewableLinesHighlightedItemIdx {
 			lineStyle = baseLineStyle.Copy().Background(global_styles.FocusedComponentBackgroundColor).Bold(true)
 		}
-		renderedLine := lineStyle.Render(item.Render())
+		renderedLine := lineStyle.Render(item.View())
 
 		resultLines = append(resultLines, renderedLine)
 	}
@@ -109,7 +106,7 @@ func (model Model[T]) View() string {
 		Render(result)
 }
 
-func (model Model[T]) UpdateFilter(newFilter func(int, T) bool) Model[T] {
+func (model *Model[T]) UpdateFilter(newFilter func(int, T) bool) {
 	highlightedOriginalItemIdx := model.filteredItemsOriginalIndices[model.highlightedItemIdx]
 
 	// By default, assume that the highlighted item in the pre-filter list doesn't exist in the
@@ -129,11 +126,9 @@ func (model Model[T]) UpdateFilter(newFilter func(int, T) bool) Model[T] {
 		}
 	}
 	model.filteredItemsOriginalIndices = newFilteredItemOriginalIndices
-
-	return model
 }
 
-func (model Model[T]) SetItems(items []T) Model[T] {
+func (model *Model[T]) SetItems(items []T) {
 	filteredIndices := []int{}
 	for idx := range items {
 		filteredIndices = append(filteredIndices, idx)
@@ -142,12 +137,11 @@ func (model Model[T]) SetItems(items []T) Model[T] {
 	model.unfilteredItems = items
 	model.filteredItemsOriginalIndices = filteredIndices
 	model.highlightedItemIdx = 0
-	return model
 }
 
 // Scrolls the highlighted selection down or up by the specified number of items, with safeguards to
 // prevent scrolling off the ends of the list
-func (model Model[T]) Scroll(scrollOffset int) Model[T] {
+func (model *Model[T]) Scroll(scrollOffset int) {
 	newHighlightedItemIdx := model.highlightedItemIdx + scrollOffset
 	if newHighlightedItemIdx < 0 {
 		newHighlightedItemIdx = 0
@@ -156,7 +150,6 @@ func (model Model[T]) Scroll(scrollOffset int) Model[T] {
 		newHighlightedItemIdx = len(model.filteredItemsOriginalIndices) - 1
 	}
 	model.highlightedItemIdx = newHighlightedItemIdx
-	return model
 }
 
 func (model Model[T]) GetItems() []T {
@@ -173,10 +166,14 @@ func (model Model[T]) GetHighlightedItemIndex() int {
 	return model.highlightedItemIdx
 }
 
-func (model Model[T]) Resize(width int, height int) Model[T] {
+func (model *Model[T]) Resize(width int, height int) {
 	model.width = width
 	model.height = height
-	return model
+
+	for _, item := range model.unfilteredItems {
+		// TODO Allow items to wrap (but requires a whole viewing framework)
+		item.Resize(width, 1)
+	}
 }
 
 func (model Model[T]) GetHeight() int {
