@@ -55,8 +55,8 @@ type implementation struct {
 	name      string
 	tags      []string // Maybe make this a map??
 
-	isHiglighted bool
-	isSelected   bool
+	isHighlighted bool
+	isSelected    bool
 
 	width  int
 	height int
@@ -64,13 +64,13 @@ type implementation struct {
 
 func New(timestamp time.Time, name string, tags []string) Component {
 	return &implementation{
-		timestamp:    timestamp,
-		name:         name,
-		tags:         tags,
-		isHiglighted: false,
-		isSelected:   false,
-		width:        0,
-		height:       0,
+		timestamp:     timestamp,
+		name:          name,
+		tags:          tags,
+		isHighlighted: false,
+		isSelected:    false,
+		width:         0,
+		height:        0,
 	}
 }
 
@@ -78,7 +78,7 @@ func (impl implementation) View() string {
 	return impl.render()
 }
 
-func (impl implementation) Resize(width int, height int) {
+func (impl *implementation) Resize(width int, height int) {
 	impl.width = width
 	impl.height = height
 }
@@ -108,7 +108,7 @@ func (impl implementation) GetValue() string {
 }
 
 func (impl implementation) SetHighlighted(isHighlighted bool) {
-	impl.isHiglighted = isHighlighted
+	impl.isHighlighted = isHighlighted
 }
 
 func (impl *implementation) SetSelection(isSelected bool) {
@@ -120,7 +120,7 @@ func (impl implementation) IsSelected() bool {
 }
 
 func (impl implementation) IsHighlighted() bool {
-	return impl.isHiglighted
+	return impl.isHighlighted
 }
 
 // ====================================================================================================
@@ -131,7 +131,7 @@ func (impl implementation) IsHighlighted() bool {
 // TODO allow this to do wrapping
 func (impl implementation) render() string {
 	baseLineStyle := lipgloss.NewStyle()
-	if impl.isHiglighted {
+	if impl.isHighlighted {
 		baseLineStyle = baseLineStyle.Background(global_styles.FocusedComponentBackgroundColor).Bold(true)
 	}
 
@@ -212,7 +212,7 @@ func (impl implementation) render() string {
 			Render(tagsStr)
 	}
 
-	line := lipgloss.JoinHorizontal(
+	return lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		checkmarkStr,
 		timestampStr,
@@ -220,8 +220,11 @@ func (impl implementation) render() string {
 		tagsStr,
 	)
 
-	return baseLineStyle.Copy().
-		Width(impl.width).
-		MaxWidth(impl.width).
-		Render(line)
+	/*
+		return baseLineStyle.Copy().
+			Width(impl.width).
+			MaxWidth(impl.width).
+			Render(line)
+
+	*/
 }

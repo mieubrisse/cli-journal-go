@@ -4,7 +4,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mieubrisse/cli-journal-go/components/filterable_list_item"
-	"github.com/mieubrisse/cli-journal-go/global_styles"
 	"github.com/mieubrisse/cli-journal-go/helpers"
 	"strings"
 )
@@ -42,8 +41,11 @@ func New[T filterable_list_item.Component](items []T) Component[T] {
 }
 
 func (impl implementation[T]) View() string {
-	baseLineStyle := lipgloss.NewStyle().
-		Width(impl.width)
+	/*
+		baseLineStyle := lipgloss.NewStyle().
+			Width(impl.width)
+
+	*/
 
 	// As aesthetic choices, when there are more item lines than display lines:
 	// 1. We want the entire list to scroll around the cursor if it's in the center of the screen, rather than
@@ -79,18 +81,22 @@ func (impl implementation[T]) View() string {
 
 	displayedItems := impl.filteredItemsOriginalIndices[firstDisplayedLineIdxInclusive:lastDisplayedLineIdxExclusive]
 
-	viewableLinesHighlightedItemIdx := impl.highlightedItemIdx - firstDisplayedLineIdxInclusive
+	// viewableLinesHighlightedItemIdx := impl.highlightedItemIdx - firstDisplayedLineIdxInclusive
 
 	resultLines := []string{}
-	for idx, originalItemIdx := range displayedItems {
+	for _, originalItemIdx := range displayedItems {
 		item := impl.unfilteredItems[originalItemIdx]
 
-		lineStyle := baseLineStyle
-		if impl.isFocused && idx == viewableLinesHighlightedItemIdx {
-			// NOTE: this _may_ mess up the styling of the inner stuff
-			lineStyle = baseLineStyle.Copy().Background(global_styles.FocusedComponentBackgroundColor).Bold(true)
-		}
-		renderedLine := lineStyle.Render(item.View())
+		/*
+			lineStyle := baseLineStyle
+			if impl.isFocused && idx == viewableLinesHighlightedItemIdx {
+				// NOTE: this _may_ mess up the styling of the inner stuff
+				lineStyle = baseLineStyle.Copy().Background(global_styles.FocusedComponentBackgroundColor).Bold(true)
+			}
+			renderedLine := lineStyle.Render(item.View())
+
+		*/
+		renderedLine := item.View()
 
 		resultLines = append(resultLines, renderedLine)
 	}
