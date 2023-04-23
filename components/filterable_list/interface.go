@@ -1,12 +1,12 @@
 package filterable_list
 
 import (
-	"github.com/mieubrisse/cli-journal-go/components/framework"
-	"github.com/mieubrisse/cli-journal-go/components/framework/filterable_list_item"
+	"github.com/mieubrisse/cli-journal-go/components"
+	"github.com/mieubrisse/cli-journal-go/components/filterable_list_item"
 )
 
 type FilterableListComponent[T filterable_list_item.FilterableListItemComponent] interface {
-	framework.FocusableComponent
+	components.FocusableComponent
 
 	UpdateFilter(newFilter func(idx int, item T) bool)
 	SetItems(items []T)

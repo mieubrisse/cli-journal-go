@@ -3,7 +3,7 @@ package form
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/mieubrisse/cli-journal-go/components/app/text_input"
+	"github.com/mieubrisse/cli-journal-go/app_components/text_input"
 	"github.com/mieubrisse/cli-journal-go/global_styles"
 )
 

@@ -3,7 +3,7 @@ package filterable_list
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/mieubrisse/cli-journal-go/components/framework/filterable_list_item"
+	"github.com/mieubrisse/cli-journal-go/components/filterable_list_item"
 	"github.com/mieubrisse/cli-journal-go/global_styles"
 	"github.com/mieubrisse/cli-journal-go/helpers"
 	"strings"

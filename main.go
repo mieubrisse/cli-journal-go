@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/mieubrisse/cli-journal-go/components/app/app_model"
+	"github.com/mieubrisse/cli-journal-go/app_components/app_model"
 	"github.com/mieubrisse/cli-journal-go/data_structures/content_item"
 	"os"
 	"regexp"

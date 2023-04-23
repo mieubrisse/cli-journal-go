@@ -2,8 +2,8 @@ package filterable_checklist
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/mieubrisse/cli-journal-go/components/framework/filterable_checklist_item"
-	"github.com/mieubrisse/cli-journal-go/components/framework/filterable_list"
+	"github.com/mieubrisse/cli-journal-go/components/filterable_checklist_item"
+	"github.com/mieubrisse/cli-journal-go/components/filterable_list"
 )
 
 type implementation[T filterable_checklist_item.Component] struct {

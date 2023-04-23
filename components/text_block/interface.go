@@ -1,11 +1,11 @@
 package text_block
 
 import (
-	"github.com/mieubrisse/cli-journal-go/components/framework"
+	"github.com/mieubrisse/cli-journal-go/components"
 )
 
 type TextBlockComponent interface {
-	framework.Component
+	components.Component
 
 	// TODO remove this??
 	GetContents() string
