@@ -3,10 +3,10 @@ package app_model
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mieubrisse/cli-journal-go/app_components/entry_item"
 	"github.com/mieubrisse/cli-journal-go/app_components/filter_pane"
 	"github.com/mieubrisse/cli-journal-go/app_components/filterable_content_list"
-	"github.com/mieubrisse/cli-journal-go/app_components/form"
-	"github.com/mieubrisse/cli-journal-go/app_components/text_input"
+	"github.com/mieubrisse/cli-journal-go/app_components/new_entry_form"
 	"github.com/mieubrisse/cli-journal-go/components/filterable_list"
 	"github.com/mieubrisse/cli-journal-go/components/filterable_list_item"
 	"github.com/mieubrisse/cli-journal-go/data_structures/content_item"
@@ -14,7 +14,6 @@ import (
 	"github.com/mieubrisse/cli-journal-go/helpers"
 	"github.com/mieubrisse/vim-bubble/vim"
 	"github.com/sahilm/fuzzy"
-	"regexp"
 	"sort"
 	"time"
 )
@@ -27,7 +26,6 @@ const (
 )
 
 // "Constants"
-var acceptableFormFieldRegex = regexp.MustCompile("^[a-zA-Z0-9.-]+$")
 var horizontalPadThresholdsByTerminalWidth = map[int]int{
 	0:   0,
 	60:  1,
@@ -43,7 +41,7 @@ var filtersLabelLine = lipgloss.NewStyle().
 	Render("FILTERS")
 
 type Model struct {
-	createContentForm form.Model
+	createContentForm new_entry_form.Component
 
 	filterPane filter_pane.Model
 
@@ -58,16 +56,9 @@ type Model struct {
 }
 
 func New(
-	content []content_item.ContentItem,
+	content []entry_item.Component,
 ) Model {
-	createContentFormInput := text_input.New("Name: ")
-	createContentForm := form.New(
-		"Create Content",
-		createContentFormInput,
-		func(text string) bool {
-			return acceptableFormFieldRegex.MatchString(text)
-		},
-	)
+	createContentForm := new_entry_form.New()
 
 	contentList := filterable_content_list.New(content)
 	contentList.Focus()
@@ -76,7 +67,7 @@ func New(
 
 	deduplicatedTags := make(map[string]bool, 0)
 	for _, contentItem := range content {
-		for _, tag := range contentItem.Tags {
+		for _, tag := range contentItem.GetTags() {
 			deduplicatedTags[tag] = true
 		}
 	}
@@ -117,14 +108,14 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if model.contentList.Focused() {
 			switch msg.String() {
 			case "\\":
-				model.contentList = model.contentList.Blur()
+				cmds := make([]tea.Cmd, 0)
+				cmds = append(cmds, model.contentList.Blur())
 
-				// TODO switch to by-value
-				model.filterPane.Focus()
-				model.filterTabCompletionPane.Focus()
+				cmds = append(cmds, model.filterPane.Focus())
+				cmds = append(cmds, model.filterTabCompletionPane.Focus())
 				model.filterPane.SetMode(vim.InsertMode)
 
-				return model, nil
+				return model, tea.Batch(cmds...)
 			case "c":
 				// Clear all filters
 				model.filterPane.Clear()
@@ -134,21 +125,15 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				return model, nil
 			case "n":
-				model.contentList = model.contentList.Blur()
-
-				var cmd tea.Cmd
-				model.createContentForm, cmd = model.createContentForm.Focus()
-				return model, cmd
+				cmds := make([]tea.Cmd, 0)
+				cmds = append(cmds, model.contentList.Blur())
+				cmds = append(cmds, model.createContentForm.Focus())
+				return model, tea.Batch(cmds...)
 			case "d":
-				model.contentList = model.contentList.Blur()
-
-				var cmd tea.Cmd
-				model.createContentForm, cmd = model.createContentForm.Focus()
-				return model, cmd
+				panic("Implement Delete!")
 			}
 
-			var cmd tea.Cmd
-			model.contentList, cmd = model.contentList.Update(msg)
+			cmd := model.contentList.Update(msg)
 			return model, cmd
 
 		} else if model.filterPane.Focused() {
@@ -158,11 +143,8 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				model.filterPane.Blur()
 				model.filterTabCompletionPane.Blur()
 
-				model.contentList = model.contentList.Focus()
-
-				model = model.resizeContentListAndFilterPane()
-
-				return model, nil
+				cmd := model.contentList.Focus()
+				return model, cmd
 			case "ctrl+j":
 				model.filterTabCompletionPane.Scroll(1)
 				return model, nil
@@ -213,6 +195,7 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else if model.createContentForm.Focused() {
 			switch msg.String() {
 			case "esc":
+				cmds := make([]tea.Cmd, 0)
 				// Back out of the create content modal
 				model.createContentForm = model.createContentForm.Clear().
 					Blur()
@@ -325,10 +308,6 @@ func getPadsForSize(width int, height int) (int, int) {
 	}
 
 	return actualHorizontalPad, actualVerticalPad
-}
-
-func (model Model) resizeContentListAndFilterPane() Model {
-	return model
 }
 
 func clampInt(value int, min int, max int) int {

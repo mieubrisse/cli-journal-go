@@ -13,8 +13,9 @@ type Model struct {
 	input           textinput.Model
 	foregroundColor lipgloss.Color
 
-	width  int
-	height int
+	isFocused bool
+	width     int
+	height    int
 }
 
 func New(promptText string) Model {
@@ -22,7 +23,11 @@ func New(promptText string) Model {
 
 	input.Prompt = promptText
 	return Model{
-		input: input,
+		input:           input,
+		foregroundColor: "",
+		isFocused:       false,
+		width:           0,
+		height:          0,
 	}
 }
 
@@ -30,10 +35,14 @@ func (model Model) Init() tea.Cmd {
 	return nil
 }
 
-func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
+func (model *Model) Update(msg tea.Msg) tea.Cmd {
+	if !model.isFocused {
+		return nil
+	}
+
 	var cmd tea.Cmd
 	model.input, cmd = model.input.Update(msg)
-	return model, cmd
+	return cmd
 }
 
 func (model Model) View() string {
@@ -49,34 +58,34 @@ func (model Model) View() string {
 	return baseStyle.Render(model.input.View())
 }
 
-func (model Model) Focus() (Model, tea.Cmd) {
-	return model, model.input.Focus()
-}
-
-func (model Model) Blur() Model {
-	model.input.Blur()
-	return model
-}
-
-func (model Model) Focused() bool {
-	return model.input.Focused()
-}
-
-func (model Model) SetValue(newValue string) Model {
+func (model *Model) SetValue(newValue string) {
 	model.input.SetValue(newValue)
-	return model
 }
 
-func (model Model) SetForegroundColor(color lipgloss.Color) Model {
-	model.foregroundColor = color
-	return model
-}
-
-func (model Model) Value() string {
+func (model Model) GetValue() string {
 	return model.input.Value()
 }
 
-func (model Model) Resize(width int, height int) Model {
+func (model *Model) Focus() tea.Cmd {
+	model.isFocused = true
+	return model.input.Focus()
+}
+
+func (model *Model) Blur() tea.Cmd {
+	model.isFocused = false
+	model.input.Blur()
+	return nil
+}
+
+func (model Model) Focused() bool {
+	return model.isFocused
+}
+
+func (model *Model) SetForegroundColor(color lipgloss.Color) {
+	model.foregroundColor = color
+}
+
+func (model *Model) Resize(width int, height int) {
 	model.width = width
 	model.height = height
 
@@ -90,8 +99,6 @@ func (model Model) Resize(width int, height int) Model {
 	// The width on the Charm input is actually the max number of characters displayed at once NOT including the prompt!
 	// This is why we do all the calculations prior
 	model.input.Width = maxNumActualDisplayedChars
-
-	return model
 }
 
 func (model Model) GetHeight() int {

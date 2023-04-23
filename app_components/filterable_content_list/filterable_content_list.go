@@ -35,8 +35,8 @@ func New(content []entry_item.Component) Model {
 	checklist := filterable_checklist.New(castedContent)
 
 	return Model{
-		checklist: nil,
-		items:     nil,
+		checklist: checklist,
+		items:     content,
 		isFocused: false,
 		height:    0,
 		width:     0,
@@ -169,14 +169,14 @@ func (model Model) Focused() bool {
 	return model.isFocused
 }
 
-func (model *Model) Focus() {
+func (model *Model) Focus() tea.Cmd {
 	model.isFocused = true
-	model.checklist.Focus()
+	return model.checklist.Focus()
 }
 
-func (model *Model) Blur() Model {
+func (model *Model) Blur() tea.Cmd {
 	model.isFocused = false
-	model.checklist.Blur()
+	return model.checklist.Blur()
 }
 
 func (model *Model) Resize(width int, height int) {
