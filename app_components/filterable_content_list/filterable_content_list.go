@@ -7,50 +7,9 @@ import (
 	"github.com/mieubrisse/cli-journal-go/data_structures/content_item"
 	"github.com/mieubrisse/cli-journal-go/data_structures/selected_item_index_set"
 	"github.com/mieubrisse/cli-journal-go/global_styles"
-	"github.com/mieubrisse/cli-journal-go/helpers"
 	"regexp"
 	"strings"
 )
-
-type componentSize int
-
-const (
-	contentTimestampFormat = "2006-01-02 15:04:05"
-
-	checkmarkChar = '•'
-
-	// Used when a line is too small
-	continuationChar = '…'
-
-	maxNameWidth = 45
-
-	minimumNameAndTagWidth = 5
-
-	wide componentSize = iota
-	medium
-	narrow
-	sliver
-)
-
-// Minimum width, in characters, for the component to be classed as each size
-var componentSizeThresholds = map[componentSize]int{
-	wide:   150,
-	medium: 120,
-	narrow: 80,
-	sliver: 0,
-}
-var checkmarkWidthsByComponentSize = map[componentSize]int{
-	wide:   5,
-	medium: 4,
-	narrow: 3,
-	sliver: 2,
-}
-var timestampWidthsByComponentSize = map[componentSize]int{
-	wide:   len(contentTimestampFormat) + 4,
-	medium: len(contentTimestampFormat) + 2,
-	narrow: 0,
-	sliver: 0,
-}
 
 // This
 type Model struct {
@@ -370,98 +329,4 @@ func transformTermsToFilterRegexes(lines []string) []*regexp.Regexp {
 	}
 
 	return result
-}
-
-func (model Model) renderContentLine(content content_item.ContentItem, isContentHighlighted bool, isContentSelected bool) string {
-	baseLineStyle := lipgloss.NewStyle()
-	if model.isFocused && isContentHighlighted {
-		baseLineStyle = baseLineStyle.Background(global_styles.FocusedComponentBackgroundColor).Bold(true)
-	}
-
-	// Calculate the widths for the various components
-	biggestThresholdPassed := sliver
-	for trialComponentSize, threshold := range componentSizeThresholds {
-		if model.width > threshold && threshold > componentSizeThresholds[biggestThresholdPassed] {
-			biggestThresholdPassed = trialComponentSize
-		}
-	}
-	actualComponentSize := biggestThresholdPassed
-	checkmarkWidth, found := checkmarkWidthsByComponentSize[actualComponentSize]
-	if !found {
-		panic("No checkmark width for terminal size")
-	}
-	timestampWidth, found := timestampWidthsByComponentSize[actualComponentSize]
-	if !found {
-		panic("No timestamp width for terminal size")
-	}
-
-	widthRemaining := helpers.GetMaxInt(0, model.width-checkmarkWidth-timestampWidth)
-	// Safety valve: if we don't have at least 10 characters, don't even bother
-
-	nameWidth := helpers.GetMinInt(
-		maxNameWidth,
-		int(0.6*float64(widthRemaining)),
-	)
-	tagsWidth := helpers.GetMaxInt(0, widthRemaining-nameWidth)
-
-	// Checkmark string
-	checkmarkStr := ""
-	if isContentSelected {
-		checkmarkStr = string(checkmarkChar)
-	}
-	checkmarkStr = baseLineStyle.Copy().
-		Foreground(global_styles.Orange).
-		Width(checkmarkWidth).
-		AlignHorizontal(lipgloss.Center).
-		Render(checkmarkStr)
-
-	// Timestamp (disabled if too small)
-	timestampStr := ""
-	if timestampWidth > 0 {
-		timestampStr = content.Timestamp.Format(contentTimestampFormat)
-		timestampStr = baseLineStyle.Copy().
-			Foreground(global_styles.Cyan).
-			Width(timestampWidth).
-			AlignHorizontal(lipgloss.Left).
-			Render(timestampStr)
-	}
-
-	// Name
-	nameStr := ""
-	if nameWidth > minimumNameAndTagWidth {
-		nameStr = content.Name
-		nameLen := len(nameStr)
-		if nameLen > nameWidth-1 {
-			nameStr = nameStr[:nameWidth-2] + string(continuationChar)
-		}
-		nameStr = baseLineStyle.Copy().
-			Foreground(global_styles.White).
-			Width(nameWidth).
-			AlignHorizontal(lipgloss.Left).
-			Render(nameStr)
-	}
-
-	tagsStr := ""
-	if tagsWidth > minimumNameAndTagWidth {
-		tagsStr = strings.Join(content.Tags, " ")
-		tagsLen := len(tagsStr)
-		if tagsLen > tagsWidth-1 {
-			tagsStr = tagsStr[:tagsWidth-2] + string(continuationChar)
-		}
-		tagsStr = baseLineStyle.Copy().
-			Foreground(global_styles.Red).
-			Width(tagsWidth).
-			AlignHorizontal(lipgloss.Left).
-			Render(tagsStr)
-	}
-
-	line := lipgloss.JoinHorizontal(
-		lipgloss.Top,
-		checkmarkStr,
-		timestampStr,
-		nameStr,
-		tagsStr,
-	)
-
-	return baseLineStyle.Copy().Width(model.width).Render(line)
 }

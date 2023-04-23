@@ -7,5 +7,6 @@ import (
 type Component interface {
 	filterable_list_item.Component
 
+	IsSelected() bool
 	SetSelection(isSelected bool)
 }

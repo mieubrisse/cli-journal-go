@@ -6,7 +6,7 @@ import (
 )
 
 type Component interface {
-	components.FocusableComponent
+	components.InteractiveComponent
 
 	UpdateFilter(newFilter func(idx int, item filterable_list_item.Component) bool)
 	SetItems(items []filterable_list_item.Component)

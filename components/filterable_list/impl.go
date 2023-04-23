@@ -106,6 +106,30 @@ func (impl implementation) View() string {
 		Render(result)
 }
 
+func (impl *implementation) Update(msg tea.Msg) tea.Cmd {
+	// Do nothing on non-Keymsgs
+	switch msg.(type) {
+	case tea.KeyMsg:
+		// Proceed to rest of function
+	default:
+		return nil
+	}
+
+	// TODO allow for KeyMap overrides here?
+	castedMsg := msg.(tea.KeyMsg)
+	switch castedMsg.String() {
+	case "j":
+		impl.Scroll(1)
+	case "k":
+		impl.Scroll(-1)
+	case "J":
+		impl.Scroll(impl.height)
+	case "K":
+		impl.Scroll(-impl.height)
+	}
+	return nil
+}
+
 func (impl *implementation) UpdateFilter(newFilter func(int, filterable_list_item.Component) bool) {
 	highlightedOriginalItemIdx := impl.filteredItemsOriginalIndices[impl.highlightedItemIdx]
 
