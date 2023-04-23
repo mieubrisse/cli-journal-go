@@ -1,9 +1,9 @@
-package filterable_item_list
+package filterable_list
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/mieubrisse/cli-journal-go/components"
+	"github.com/mieubrisse/cli-journal-go/components/list_item"
 	"github.com/mieubrisse/cli-journal-go/global_styles"
 	"github.com/mieubrisse/cli-journal-go/helpers"
 	"strings"
@@ -12,7 +12,7 @@ import (
 /*
 Component for displaying a scrollable, filterable list of items
 */
-type Model[T components.Component] struct {
+type Model[T list_item.ListItemComponent] struct {
 	unfilteredItems []T
 
 	// The indices of the filtered items within the unfiltered items list
@@ -26,7 +26,7 @@ type Model[T components.Component] struct {
 	height    int
 }
 
-func New[T components.Component](items []T) Model[T] {
+func New[T list_item.ListItemComponent](items []T) Model[T] {
 	filteredIndices := []int{}
 	for idx := range items {
 		filteredIndices = append(filteredIndices, idx)

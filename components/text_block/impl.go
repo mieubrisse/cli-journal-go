@@ -1,8 +1,8 @@
-package tab_completion_item
+package text_block
 
 import "github.com/charmbracelet/lipgloss"
 
-type TabCompletionItem struct {
+type impl struct {
 	contents string
 
 	// TODO add matched char index
@@ -11,34 +11,35 @@ type TabCompletionItem struct {
 	height int
 }
 
-func New(contents string) *TabCompletionItem {
-	return &TabCompletionItem{
+func New(contents string) TextBlockComponent {
+	return &impl{
 		contents: contents,
 		width:    0,
 		height:   0,
 	}
 }
 
-func (item TabCompletionItem) GetContents() string {
+func (item impl) GetContents() string {
 	return item.contents
 }
 
-func (item TabCompletionItem) View() string {
+func (item impl) View() string {
+	// TODO add the nice '...' for when the item is cut off
 	return lipgloss.NewStyle().
 		MaxWidth(item.width).
 		MaxHeight(item.height).
 		Render(item.contents)
 }
 
-func (item *TabCompletionItem) Resize(width int, height int) {
+func (item *impl) Resize(width int, height int) {
 	item.width = width
 	item.height = height
 }
 
-func (item TabCompletionItem) GetWidth() int {
+func (item impl) GetWidth() int {
 	return item.width
 }
 
-func (item TabCompletionItem) GetHeight() int {
+func (item impl) GetHeight() int {
 	return item.height
 }

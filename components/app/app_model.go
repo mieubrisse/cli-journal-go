@@ -5,9 +5,9 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mieubrisse/cli-journal-go/components/filter_pane"
 	"github.com/mieubrisse/cli-journal-go/components/filterable_content_list"
-	"github.com/mieubrisse/cli-journal-go/components/filterable_item_list"
+	"github.com/mieubrisse/cli-journal-go/components/filterable_list"
 	"github.com/mieubrisse/cli-journal-go/components/form"
-	"github.com/mieubrisse/cli-journal-go/components/tab_completion_item"
+	"github.com/mieubrisse/cli-journal-go/components/text_block"
 	"github.com/mieubrisse/cli-journal-go/components/text_input"
 	"github.com/mieubrisse/cli-journal-go/data_structures/content_item"
 	"github.com/mieubrisse/cli-journal-go/global_styles"
@@ -47,7 +47,7 @@ type Model struct {
 
 	filterPane filter_pane.Model
 
-	filterTabCompletionPane filterable_item_list.Model[*tab_completion_item.TabCompletionItem]
+	filterTabCompletionPane filterable_list.Model[text_block.TextBlockComponent]
 
 	contentList filterable_content_list.Model
 
@@ -87,7 +87,7 @@ func New(
 	}
 	sort.Strings(sortedTags)
 
-	completionPane := filterable_item_list.New[*tab_completion_item.TabCompletionItem]([]*tab_completion_item.TabCompletionItem{})
+	completionPane := filterable_list.New[text_block.TextBlockComponent]([]text_block.TextBlockComponent{})
 
 	return Model{
 		createContentForm:       createContentForm,
@@ -130,7 +130,7 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				model.filterPane.Clear()
 				nameFilterLines, tagFilterLines := model.filterPane.GetFilterLines()
 				model.contentList = model.contentList.SetFilters(nameFilterLines, tagFilterLines)
-				model.filterTabCompletionPane.SetItems([]*tab_completion_item.TabCompletionItem{})
+				model.filterTabCompletionPane.SetItems([]text_block.TextBlockComponent{})
 
 				return model, nil
 			case "n":
@@ -191,19 +191,19 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			// Update the tab-contents pane with changes, displaying nothing if the line isn't a tag filter line
 			filterText, isTagFilter := model.filterPane.GetCurrentFilter()
-			tabCompletionItems := make([]*tab_completion_item.TabCompletionItem, 0)
+			tabCompletionItems := make([]text_block.TextBlockComponent, 0)
 			if isTagFilter {
 				if len(filterText) > 0 {
 					matches := fuzzy.Find(filterText, model.tags)
 
-					tabCompletionItems = make([]*tab_completion_item.TabCompletionItem, len(matches))
+					tabCompletionItems = make([]text_block.TextBlockComponent, len(matches))
 					for idx, match := range matches {
-						tabCompletionItems[idx] = tab_completion_item.New(model.tags[match.Index])
+						tabCompletionItems[idx] = text_block.New(model.tags[match.Index])
 					}
 				} else {
-					tabCompletionItems = make([]*tab_completion_item.TabCompletionItem, len(model.tags))
+					tabCompletionItems = make([]text_block.TextBlockComponent, len(model.tags))
 					for idx, tag := range model.tags {
-						tabCompletionItems[idx] = tab_completion_item.New(tag)
+						tabCompletionItems[idx] = text_block.New(tag)
 					}
 				}
 			}

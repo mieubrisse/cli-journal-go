@@ -1,12 +1,13 @@
-package filterable_selectable_item_list
+package filterable_checklist
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/mieubrisse/cli-journal-go/components/filterable_item_list"
+	"github.com/mieubrisse/cli-journal-go/components/checklist_item"
+	"github.com/mieubrisse/cli-journal-go/components/filterable_list"
 )
 
-type Model[T FilterableSelectableListItem] struct {
-	filterableList filterable_item_list.Model[T]
+type Model[T checklist_item.ChecklistItemComponent] struct {
+	filterableList filterable_list.Model[T]
 
 	items []T
 
@@ -26,7 +27,7 @@ func (model Model[T]) Resize(width int, height int) Model[T] {
 	model.width = width
 	model.height = height
 
-	model.filterableList = model.filterableList.Resize(width, height)
+	model.filterableList.Resize(width, height)
 	return model
 }
 
@@ -53,20 +54,16 @@ func (model Model[T]) Focused() bool {
 	return model.isFocused
 }
 
-func (model Model[T]) UpdateFilter(newFilter func(int, T) bool) Model[T] {
-	model.filterableList = model.filterableList.UpdateFilter(newFilter)
-	return model
+func (model *Model[T]) UpdateFilter(newFilter func(int, T) bool) {
+	model.filterableList.UpdateFilter(newFilter)
 }
 
-func (model Model[T]) SetItems(items []T) Model[T] {
-	// TDOO more stuff
-	model.filterableList = model.filterableList.SetItems(items)
-	return model
+func (model *Model[T]) SetItems(items []T) {
+	model.filterableList.SetItems(items)
 }
 
-func (model Model[T]) Scroll(scrollOffset int) Model[T] {
-	model.filterableList = model.filterableList.Scroll(scrollOffset)
-	return model
+func (model *Model[T]) Scroll(scrollOffset int) {
+	model.filterableList.Scroll(scrollOffset)
 }
 
 func (model Model[T]) GetItems() []T {
@@ -81,31 +78,27 @@ func (model Model[T]) GetHighlightedItemIndex() int {
 	return model.filterableList.GetHighlightedItemIndex()
 }
 
-func (model Model[T]) SetHighlightedItemSelection(isSelected bool) Model[T] {
+func (model *Model[T]) SetHighlightedItemSelection(isSelected bool) {
 	filteredItemIndices := model.GetFilteredItemIndices()
 	if len(filteredItemIndices) == 0 {
-		return model
+		return
 	}
 
 	highlightedItemIdxInFilteredList := model.GetHighlightedItemIndex()
 	highlightedItemIdxInOriginalList := filteredItemIndices[highlightedItemIdxInFilteredList]
 
-	model = model.setItemSelection(highlightedItemIdxInOriginalList, isSelected)
-
-	return model
+	model.setItemSelection(highlightedItemIdxInOriginalList, isSelected)
 }
 
-func (model Model[T]) SetAllViewableItemsSelection(isSelected bool) Model[T] {
+func (model *Model[T]) SetAllViewableItemsSelection(isSelected bool) {
 	filteredItemIndices := model.GetFilteredItemIndices()
 	if len(filteredItemIndices) == 0 {
-		return model
+		return
 	}
 
 	for _, originalItemIdx := range filteredItemIndices {
 		model.setItemSelection(originalItemIdx, isSelected)
 	}
-
-	return model
 }
 
 // ====================================================================================================
