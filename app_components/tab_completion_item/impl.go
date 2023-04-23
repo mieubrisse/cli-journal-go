@@ -25,6 +25,7 @@ func New(contents string) filterable_list_item.Component {
 }
 
 func (impl implementation) View() string {
+	// TODO do the cute little '...' cutoff
 	return impl.innerComponent.View()
 }
 
