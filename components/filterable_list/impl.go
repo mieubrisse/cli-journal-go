@@ -12,8 +12,8 @@ import (
 /*
 Component for displaying a scrollable, filterable list of items
 */
-type implementation struct {
-	unfilteredItems []filterable_list_item.Component
+type implementation[T filterable_list_item.Component] struct {
+	unfilteredItems []T
 
 	// The indices of the filtered items within the unfiltered items list
 	filteredItemsOriginalIndices []int
@@ -26,7 +26,7 @@ type implementation struct {
 	height    int
 }
 
-func New(items []filterable_list_item.Component) Component {
+func New[T filterable_list_item.Component](items []T) implementation[T] {
 	filteredIndices := []int{}
 	for idx := range items {
 		filteredIndices = append(filteredIndices, idx)
@@ -41,7 +41,7 @@ func New(items []filterable_list_item.Component) Component {
 	}
 }
 
-func (impl implementation) View() string {
+func (impl implementation[T]) View() string {
 	baseLineStyle := lipgloss.NewStyle().
 		Width(impl.width)
 
@@ -107,7 +107,7 @@ func (impl implementation) View() string {
 		Render(result)
 }
 
-func (impl *implementation) Update(msg tea.Msg) tea.Cmd {
+func (impl *implementation[T]) Update(msg tea.Msg) tea.Cmd {
 	// Do nothing on non-Keymsgs
 	switch msg.(type) {
 	case tea.KeyMsg:
@@ -135,7 +135,7 @@ func (impl *implementation) Update(msg tea.Msg) tea.Cmd {
 	return nil
 }
 
-func (impl *implementation) UpdateFilter(newFilter func(int, filterable_list_item.Component) bool) {
+func (impl *implementation[T]) UpdateFilter(newFilter func(int, T) bool) {
 	// This is a hack to indicate "the filtered list was empty, so there's no highlighted item original idx"
 	oldHighlightedItemOriginalIdx := -1
 
@@ -173,7 +173,7 @@ func (impl *implementation) UpdateFilter(newFilter func(int, filterable_list_ite
 	}
 }
 
-func (impl *implementation) SetItems(items []filterable_list_item.Component) {
+func (impl *implementation[T]) SetItems(items []T) {
 	filteredIndices := []int{}
 	for idx := range items {
 		filteredIndices = append(filteredIndices, idx)
@@ -192,7 +192,7 @@ func (impl *implementation) SetItems(items []filterable_list_item.Component) {
 
 // Scrolls the highlighted selection down or up by the specified number of items, with safeguards to
 // prevent scrolling off the ends of the list
-func (impl *implementation) Scroll(scrollOffset int) {
+func (impl *implementation[T]) Scroll(scrollOffset int) {
 	newHighlightedItemIdx := impl.highlightedItemIdx + scrollOffset
 	if newHighlightedItemIdx < 0 {
 		newHighlightedItemIdx = 0
@@ -218,21 +218,21 @@ func (impl *implementation) Scroll(scrollOffset int) {
 	impl.highlightedItemIdx = newHighlightedItemIdx
 }
 
-func (impl implementation) GetItems() []filterable_list_item.Component {
+func (impl implementation[T]) GetItems() []T {
 	return impl.unfilteredItems
 }
 
 // Gets the indices (within the original list) of the items currently being displayed
-func (impl implementation) GetFilteredItemIndices() []int {
+func (impl implementation[T]) GetFilteredItemIndices() []int {
 	return impl.filteredItemsOriginalIndices
 }
 
 // GetHighlightedItemIndex returns the index *within the filtered list* of the highlighted item
-func (impl implementation) GetHighlightedItemIndex() int {
+func (impl implementation[T]) GetHighlightedItemIndex() int {
 	return impl.highlightedItemIdx
 }
 
-func (impl *implementation) Resize(width int, height int) {
+func (impl *implementation[T]) Resize(width int, height int) {
 	impl.width = width
 	impl.height = height
 
@@ -242,24 +242,24 @@ func (impl *implementation) Resize(width int, height int) {
 	}
 }
 
-func (impl implementation) GetHeight() int {
+func (impl implementation[T]) GetHeight() int {
 	return impl.height
 }
 
-func (impl implementation) GetWidth() int {
+func (impl implementation[T]) GetWidth() int {
 	return impl.width
 }
 
-func (impl *implementation) Focus() tea.Cmd {
+func (impl *implementation[T]) Focus() tea.Cmd {
 	impl.isFocused = true
 	return nil
 }
 
-func (impl *implementation) Blur() tea.Cmd {
+func (impl *implementation[T]) Blur() tea.Cmd {
 	impl.isFocused = false
 	return nil
 }
 
-func (impl implementation) Focused() bool {
+func (impl implementation[T]) Focused() bool {
 	return impl.isFocused
 }

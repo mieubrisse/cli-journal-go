@@ -5,13 +5,13 @@ import (
 	"github.com/mieubrisse/cli-journal-go/components/filterable_list_item"
 )
 
-type Component interface {
+type Component[T filterable_list_item.Component] interface {
 	components.InteractiveComponent
 
-	UpdateFilter(newFilter func(idx int, item filterable_list_item.Component) bool)
-	SetItems(items []filterable_list_item.Component)
+	UpdateFilter(newFilter func(idx int, item T) bool)
+	SetItems(items []T)
 	Scroll(scrollOffset int)
-	GetItems() []filterable_list_item.Component
+	GetItems() []T
 	GetFilteredItemIndices() []int
 	GetHighlightedItemIndex() int
 }
