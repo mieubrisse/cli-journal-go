@@ -80,3 +80,47 @@ func (model Model[T]) GetFilteredItemIndices() []int {
 func (model Model[T]) GetHighlightedItemIndex() int {
 	return model.filterableList.GetHighlightedItemIndex()
 }
+
+func (model Model[T]) SetHighlightedItemSelection(isSelected bool) Model[T] {
+	filteredItemIndices := model.GetFilteredItemIndices()
+	if len(filteredItemIndices) == 0 {
+		return model
+	}
+
+	highlightedItemIdxInFilteredList := model.GetHighlightedItemIndex()
+	highlightedItemIdxInOriginalList := filteredItemIndices[highlightedItemIdxInFilteredList]
+
+	model = model.setItemSelection(highlightedItemIdxInOriginalList, isSelected)
+
+	return model
+}
+
+func (model Model[T]) SetAllViewableItemsSelection(isSelected bool) Model[T] {
+	filteredItemIndices := model.GetFilteredItemIndices()
+	if len(filteredItemIndices) == 0 {
+		return model
+	}
+
+	for _, originalItemIdx := range filteredItemIndices {
+		model.setItemSelection(originalItemIdx, isSelected)
+	}
+
+	return model
+}
+
+// ====================================================================================================
+//
+//	Private Helper Functions
+//
+// ====================================================================================================
+func (model Model[T]) setItemSelection(itemIdx int, isSelected bool) Model[T] {
+	item := model.items[itemIdx]
+	item.SetSelection(isSelected)
+
+	if isSelected {
+		model.selectedItemIndices[itemIdx] = true
+	} else {
+		delete(model.selectedItemIndices, itemIdx)
+	}
+	return model
+}

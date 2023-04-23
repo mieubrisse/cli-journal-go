@@ -173,10 +173,11 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			var cmd tea.Cmd
 			if msg.String() == "tab" {
 				// The user is tab-completing
-				completionItems := model.filterTabCompletionPane.GetFilteredItems()
-				if len(completionItems) > 0 {
-					highlightedCompletionIdx := model.filterTabCompletionPane.GetHighlightedItemIndex()
-					selectedCompletion := completionItems[highlightedCompletionIdx]
+				filteredItemIndices := model.filterTabCompletionPane.GetFilteredItemIndices()
+				if len(filteredItemIndices) > 0 {
+					highlightedCompletionIdxInFilteredList := model.filterTabCompletionPane.GetHighlightedItemIndex()
+					highlightedCompletionIdxInOriginalList := filteredItemIndices[highlightedCompletionIdxInFilteredList]
+					selectedCompletion := model.filterTabCompletionPane.GetItems()[highlightedCompletionIdxInOriginalList]
 					model.filterPane = model.filterPane.ReplaceCurrentFilter(selectedCompletion.completion, true)
 				}
 			} else {
