@@ -19,7 +19,7 @@ var acceptableNameRegex = regexp.MustCompile("^[a-zA-Z0-9.-]+$")
 
 // TODO something about a border?
 
-type Model struct {
+type implementation struct {
 	// TODO more fields
 	nameInput     text_input.Model
 	nameValidator func(text string) bool
@@ -35,7 +35,7 @@ func New() Component {
 	validator := func(text string) bool {
 		return acceptableNameRegex.MatchString(text)
 	}
-	impl := Model{
+	impl := implementation{
 		nameInput:     input,
 		nameValidator: validator,
 	}
@@ -43,17 +43,17 @@ func New() Component {
 	return &impl
 }
 
-func (model Model) Init() tea.Cmd {
+func (impl implementation) Init() tea.Cmd {
 	return nil
 }
 
-func (model Model) Update(msg tea.Msg) tea.Cmd {
-	cmd := model.nameInput.Update(msg)
-	model.recalculateInputColors()
+func (impl implementation) Update(msg tea.Msg) tea.Cmd {
+	cmd := impl.nameInput.Update(msg)
+	impl.recalculateInputColors()
 	return cmd
 }
 
-func (model Model) View() string {
+func (impl implementation) View() string {
 	// TODO some fancy nonsense to truncate strings that are too long for the form
 
 	renderedTitle := lipgloss.NewStyle().
@@ -65,73 +65,73 @@ func (model Model) View() string {
 		lipgloss.Center,
 		renderedTitle,
 		"",
-		model.nameInput.View(),
+		impl.nameInput.View(),
 	)
 
 	return lipgloss.NewStyle().
-		Width(model.width).
-		Height(model.height).
+		Width(impl.width).
+		Height(impl.height).
 		Padding(verticalPadding, horizontalPadding, verticalPadding, horizontalPadding).
 		Render(lines)
 }
 
-func (model Model) GetValue() string {
-	return model.nameInput.GetValue()
+func (impl implementation) GetValue() string {
+	return impl.nameInput.GetValue()
 }
 
-func (model *Model) Clear() {
-	model.nameInput.SetValue("")
-	model.recalculateInputColors()
+func (impl *implementation) Clear() {
+	impl.nameInput.SetValue("")
+	impl.recalculateInputColors()
 }
 
-func (model Model) GetNameValue() string {
-	return model.nameInput.GetValue()
+func (impl implementation) GetNameValue() string {
+	return impl.nameInput.GetValue()
 }
 
-func (model Model) SetNameValue(name string) {
-	model.nameInput.SetValue(name)
+func (impl implementation) SetNameValue(name string) {
+	impl.nameInput.SetValue(name)
 }
 
-func (model *Model) Focus() tea.Cmd {
-	model.isFocused = true
-	return model.nameInput.Focus()
+func (impl *implementation) Focus() tea.Cmd {
+	impl.isFocused = true
+	return impl.nameInput.Focus()
 }
 
-func (model Model) Blur() tea.Cmd {
-	model.isFocused = false
-	return model.nameInput.Blur()
+func (impl implementation) Blur() tea.Cmd {
+	impl.isFocused = false
+	return impl.nameInput.Blur()
 }
 
-func (model Model) Focused() bool {
-	return model.isFocused
+func (impl implementation) Focused() bool {
+	return impl.isFocused
 }
 
-func (model *Model) Resize(width int, height int) {
-	model.width = width
-	model.height = height
+func (impl *implementation) Resize(width int, height int) {
+	impl.width = width
+	impl.height = height
 
 	inputHeight := 1
 	inputWidth := width - 2*horizontalPadding
-	model.nameInput.Resize(inputWidth, inputHeight)
+	impl.nameInput.Resize(inputWidth, inputHeight)
 }
 
-func (model Model) GetHeight() int {
-	return model.height
+func (impl implementation) GetHeight() int {
+	return impl.height
 }
 
-func (model Model) GetWidth() int {
-	return model.width
+func (impl implementation) GetWidth() int {
+	return impl.width
 }
 
 // ====================================================================================================
 //                                   Private Helper Functions
 // ====================================================================================================
 
-func (model *Model) recalculateInputColors() {
-	isValid := model.nameValidator(model.nameInput.GetValue())
+func (impl *implementation) recalculateInputColors() {
+	isValid := impl.nameValidator(impl.nameInput.GetValue())
 	if isValid {
-		model.nameInput.SetForegroundColor(global_styles.White)
+		impl.nameInput.SetForegroundColor(global_styles.White)
 	} else {
-		model.nameInput.SetForegroundColor(global_styles.Red)
+		impl.nameInput.SetForegroundColor(global_styles.Red)
 	}
 }

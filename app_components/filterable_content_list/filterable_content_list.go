@@ -66,7 +66,7 @@ func (model Model) Update(msg tea.Msg) tea.Cmd {
 func (model Model) View() string {
 	// First calculate the footer, so we can get its height later
 	footerStr := ""
-	numSelectedItems := len(model.selectedItemIndexes.GetIndices())
+	numSelectedItems := len(model.checklist.GetSelectedItemOriginalIndices())
 	if numSelectedItems > 0 {
 		numberStr := fmt.Sprintf("%d", numSelectedItems)
 		numberStr = lipgloss.NewStyle().Foreground(global_styles.Orange).Render(numberStr)
@@ -77,32 +77,27 @@ func (model Model) View() string {
 	}
 	style := lipgloss.NewStyle().
 		Width(model.width).
+		MaxWidth(model.width).
 		Align(lipgloss.Center)
 	finalFooter := style.Render(footerStr)
 
 	// Calculate content
-	lines := []string{}
-	if len(model.filteredContentIndices) == 0 {
-		noItemsLine := lipgloss.NewStyle().
+	var content string
+	if len(model.checklist.GetFilterableList().GetFilteredItemIndices()) == 0 {
+		content = lipgloss.NewStyle().
 			Width(model.width).
 			Faint(true).
 			Align(lipgloss.Center).
 			Render("No items")
-		lines = []string{noItemsLine}
+	} else {
+		content = model.checklist.View()
 	}
-
-	for idx, contentIdx := range model.filteredContentIndices {
-		content := model.allContent[contentIdx]
-		isContentHighlighted := idx == model.cursorIdx
-		isContentSelected := model.selectedItemIndexes.Contains(contentIdx)
-
-		line := model.renderContentLine(content, isContentHighlighted, isContentSelected)
-		lines = append(lines, line)
-	}
-
-	contentLinesStr := strings.Join(lines, "\n")
-	contentHeight := model.height - lipgloss.Height(footerStr)
-	finalContent := lipgloss.NewStyle().Height(contentHeight).Render(contentLinesStr)
+	finalContent := lipgloss.NewStyle().
+		Width(model.width).
+		MaxWidth(model.width).
+		Height(model.height).
+		MaxHeight(model.height).
+		Render(content)
 
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
