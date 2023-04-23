@@ -4,7 +4,7 @@ import (
 	"github.com/mieubrisse/cli-journal-go/components"
 )
 
-type FilterableListItemComponent interface {
+type Component interface {
 	components.Component
 
 	GetValue() string

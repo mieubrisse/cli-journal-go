@@ -5,7 +5,7 @@ import (
 	"github.com/mieubrisse/cli-journal-go/components/filterable_list_item"
 )
 
-type FilterableListComponent[T filterable_list_item.FilterableListItemComponent] interface {
+type FilterableListComponent[T filterable_list_item.Component] interface {
 	components.FocusableComponent
 
 	UpdateFilter(newFilter func(idx int, item T) bool)

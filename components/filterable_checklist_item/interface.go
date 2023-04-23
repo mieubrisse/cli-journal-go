@@ -5,7 +5,7 @@ import (
 )
 
 type Component interface {
-	filterable_list_item.FilterableListItemComponent
+	filterable_list_item.Component
 
 	SetSelection(isSelected bool)
 }

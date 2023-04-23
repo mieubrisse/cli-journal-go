@@ -48,7 +48,7 @@ type Model struct {
 
 	filterPane filter_pane.Model
 
-	filterTabCompletionPane filterable_list.FilterableListComponent[filterable_list_item.FilterableListItemComponent]
+	filterTabCompletionPane filterable_list.FilterableListComponent[filterable_list_item.Component]
 
 	contentList filterable_content_list.Model
 
@@ -88,7 +88,7 @@ func New(
 	}
 	sort.Strings(sortedTags)
 
-	completionPane := filterable_list.New[filterable_list.FilterableListComponent()]([]text_block.TextBlockComponent{})
+	completionPane := filterable_list.New[filterable_list.FilterableListComponent]([]text_block.TextBlockComponent{})
 
 	return Model{
 		createContentForm:       createContentForm,

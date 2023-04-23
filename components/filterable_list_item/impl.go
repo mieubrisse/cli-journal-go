@@ -4,8 +4,8 @@ import (
 	"github.com/mieubrisse/cli-journal-go/components"
 )
 
-type implementation[T components.Component] struct {
-	inner T
+type implementation struct {
+	inner components.Component
 
 	value string
 
@@ -13,8 +13,8 @@ type implementation[T components.Component] struct {
 	height int
 }
 
-func New[T components.Component](value string, innerComponent T) FilterableListItemComponent {
-	return &implementation[T]{
+func New(value string, innerComponent components.Component) Component {
+	return &implementation{
 		inner:  innerComponent,
 		value:  value,
 		width:  0,
@@ -22,24 +22,24 @@ func New[T components.Component](value string, innerComponent T) FilterableListI
 	}
 }
 
-func (impl implementation[T]) View() string {
+func (impl implementation) View() string {
 	return impl.inner.View()
 }
 
-func (impl *implementation[T]) Resize(width int, height int) {
+func (impl *implementation) Resize(width int, height int) {
 	impl.inner.Resize(width, height)
 	impl.width = width
 	impl.height = height
 }
 
-func (impl implementation[T]) GetWidth() int {
+func (impl implementation) GetWidth() int {
 	return impl.width
 }
 
-func (impl implementation[T]) GetHeight() int {
+func (impl implementation) GetHeight() int {
 	return impl.height
 }
 
-func (impl implementation[T]) GetValue() string {
+func (impl implementation) GetValue() string {
 	return impl.value
 }

@@ -14,7 +14,7 @@ type implementation struct {
 	height int
 }
 
-func New(contents string) filterable_list_item.FilterableListItemComponent {
+func New(contents string) filterable_list_item.Component {
 	inner := text_block.New(contents)
 	return &implementation{
 		innerComponent: inner,
