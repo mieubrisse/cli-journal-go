@@ -122,12 +122,12 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// TODO switch to by-value
 				model.filterPane.Focus()
 				model.filterTabCompletionPane.Focus()
-				model.filterPane = model.filterPane.SetMode(vim.InsertMode)
+				model.filterPane.SetMode(vim.InsertMode)
 
 				return model, nil
 			case "c":
 				// Clear all filters
-				model.filterPane = model.filterPane.Clear()
+				model.filterPane.Clear()
 				nameFilterLines, tagFilterLines := model.filterPane.GetFilterLines()
 				model.contentList = model.contentList.SetFilters(nameFilterLines, tagFilterLines)
 				model.filterTabCompletionPane.SetItems([]*tab_completion_item.TabCompletionItem{})
@@ -179,10 +179,10 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					highlightedCompletionIdxInFilteredList := model.filterTabCompletionPane.GetHighlightedItemIndex()
 					highlightedCompletionIdxInOriginalList := filteredItemIndices[highlightedCompletionIdxInFilteredList]
 					selectedCompletion := model.filterTabCompletionPane.GetItems()[highlightedCompletionIdxInOriginalList]
-					model.filterPane = model.filterPane.ReplaceCurrentFilter(selectedCompletion.GetContents(), true)
+					model.filterPane.ReplaceCurrentFilter(selectedCompletion.GetContents(), true)
 				}
 			} else {
-				model.filterPane, cmd = model.filterPane.Update(msg)
+				cmd = model.filterPane.Update(msg)
 			}
 
 			// Make sure to let the content list know about the changes
@@ -290,7 +290,7 @@ func (model Model) Resize(width int, height int) Model {
 	displaySpaceHeight := helpers.GetMaxInt(0, model.height-2*verticalPad)
 
 	filterPaneWidth := int(0.5 * float64(displaySpaceWidth))
-	model.filterPane = model.filterPane.Resize(filterPaneWidth, filterPaneHeight)
+	model.filterPane.Resize(filterPaneWidth, filterPaneHeight)
 
 	completionPaneWidth := displaySpaceWidth - filterPaneWidth
 	model.filterTabCompletionPane.Resize(completionPaneWidth, filterPaneHeight)

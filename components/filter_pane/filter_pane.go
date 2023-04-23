@@ -41,23 +41,21 @@ func New() Model {
 	}
 }
 
-func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
+func (model *Model) Update(msg tea.Msg) tea.Cmd {
 	var cmd tea.Cmd
 	model.input, cmd = model.input.Update(msg)
-	return model, cmd
+	return cmd
 }
 
 func (model Model) View() string {
 	return model.input.View()
 }
 
-func (model Model) Resize(width int, height int) Model {
+func (model *Model) Resize(width int, height int) {
 	model.width = width
 	model.height = height
 
 	model.input.Resize(width, height)
-
-	return model
 }
 
 func (model Model) GetHeight() int {
@@ -89,9 +87,8 @@ func (model Model) GetValue() string {
 	return model.input.GetValue()
 }
 
-func (model Model) Clear() Model {
+func (model *Model) Clear() {
 	model.input.SetValue("")
-	return model
 }
 
 // Returns nameFilterLines, tagFilterLInes
@@ -127,9 +124,8 @@ func (model Model) GetMode() vim.Mode {
 	return model.input.GetMode()
 }
 
-func (model Model) SetMode(mode vim.Mode) Model {
+func (model *Model) SetMode(mode vim.Mode) {
 	model.input = model.input.SetMode(mode)
-	return model
 }
 
 // Gets the filter text that the user's cursor is currently over, and if it's a tag filter or not
@@ -147,13 +143,11 @@ func (model Model) GetCurrentFilter() (string, bool) {
 	return line, isTagFilter
 }
 
-func (model Model) ReplaceCurrentFilter(filterText string, isTagFilter bool) Model {
+func (model *Model) ReplaceCurrentFilter(filterText string, isTagFilter bool) {
 	model.input.CheckpointHistory()
 	newFilter := filterText
 	if isTagFilter {
 		newFilter = tagFilterLineLeader + filterText
 	}
 	model.input = model.input.ReplaceLine(newFilter)
-	
-	return model
 }
