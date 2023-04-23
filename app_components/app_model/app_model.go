@@ -6,7 +6,6 @@ import (
 	"github.com/mieubrisse/cli-journal-go/app_components/filter_pane"
 	"github.com/mieubrisse/cli-journal-go/app_components/filterable_content_list"
 	"github.com/mieubrisse/cli-journal-go/app_components/form"
-	"github.com/mieubrisse/cli-journal-go/app_components/tab_completion_item"
 	"github.com/mieubrisse/cli-journal-go/app_components/text_input"
 	"github.com/mieubrisse/cli-journal-go/components/filterable_list"
 	"github.com/mieubrisse/cli-journal-go/components/filterable_list_item"
@@ -199,12 +198,12 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 					tabCompletionItems = make([]filterable_list_item.Component, len(matches))
 					for idx, match := range matches {
-						tabCompletionItems[idx] = tab_completion_item.New(model.tags[match.Index])
+						tabCompletionItems[idx] = filterable_list_item.New(model.tags[match.Index])
 					}
 				} else {
 					tabCompletionItems = make([]filterable_list_item.Component, len(model.tags))
 					for idx, tag := range model.tags {
-						tabCompletionItems[idx] = tab_completion_item.New(tag)
+						tabCompletionItems[idx] = filterable_list_item.New(tag)
 					}
 				}
 			}

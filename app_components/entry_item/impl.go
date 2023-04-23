@@ -62,6 +62,18 @@ type implementation struct {
 	height int
 }
 
+func New(timestamp time.Time, name string, tags []string) Component {
+	return &implementation{
+		timestamp:    timestamp,
+		name:         name,
+		tags:         tags,
+		isHiglighted: false,
+		isSelected:   false,
+		width:        0,
+		height:       0,
+	}
+}
+
 func (impl implementation) View() string {
 	return impl.render()
 }
@@ -69,6 +81,18 @@ func (impl implementation) View() string {
 func (impl implementation) Resize(width int, height int) {
 	impl.width = width
 	impl.height = height
+}
+
+func (impl implementation) GetTimestamp() time.Time {
+	return impl.timestamp
+}
+
+func (impl implementation) GetName() string {
+	return impl.name
+}
+
+func (impl implementation) GetTags() []string {
+	return impl.tags
 }
 
 func (impl implementation) GetWidth() int {
@@ -89,6 +113,10 @@ func (impl implementation) SetHighlighted(isHighlighted bool) {
 
 func (impl *implementation) SetSelection(isSelected bool) {
 	impl.isSelected = isSelected
+}
+
+func (impl implementation) IsSelected() bool {
+	return impl.isSelected
 }
 
 // ====================================================================================================

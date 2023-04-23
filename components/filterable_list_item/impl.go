@@ -1,32 +1,42 @@
-package tab_completion_item
+package filterable_list_item
 
 import (
-	"github.com/mieubrisse/cli-journal-go/components/filterable_list_item"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/mieubrisse/cli-journal-go/components/text_block"
+	"github.com/mieubrisse/cli-journal-go/global_styles"
 )
 
+// implementation is a basic implementation of a list item
+// it can be reimplemented as needed
 type implementation struct {
 	innerComponent text_block.Component
 
 	contents string
 
-	width  int
-	height int
+	isHighlighted bool
+	width         int
+	height        int
 }
 
-func New(contents string) filterable_list_item.Component {
+func New(contents string) Component {
 	inner := text_block.New(contents)
 	return &implementation{
 		innerComponent: inner,
 		contents:       contents,
+		isHighlighted:  false,
 		width:          0,
 		height:         0,
 	}
 }
 
 func (impl implementation) View() string {
+	lineStyle := lipgloss.NewStyle()
+	if impl.isHighlighted {
+		lineStyle = lineStyle.Background(global_styles.FocusedComponentBackgroundColor).Bold(true)
+	}
+
 	// TODO do the cute little '...' cutoff
-	return impl.innerComponent.View()
+	return lineStyle.Render(impl.innerComponent.View())
 }
 
 func (impl *implementation) Resize(width int, height int) {
@@ -45,4 +55,12 @@ func (impl implementation) GetHeight() int {
 
 func (impl implementation) GetValue() string {
 	return impl.contents
+}
+
+func (impl implementation) IsHighlighted() bool {
+	return impl.IsHighlighted()
+}
+
+func (impl *implementation) SetHighlighted(isHighlighted bool) {
+	impl.isHighlighted = isHighlighted
 }

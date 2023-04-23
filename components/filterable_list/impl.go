@@ -87,6 +87,7 @@ func (impl implementation) View() string {
 
 		lineStyle := baseLineStyle
 		if impl.isFocused && idx == viewableLinesHighlightedItemIdx {
+			// NOTE: this _may_ mess up the styling of the inner stuff
 			lineStyle = baseLineStyle.Copy().Background(global_styles.FocusedComponentBackgroundColor).Bold(true)
 		}
 		renderedLine := lineStyle.Render(item.View())
@@ -115,6 +116,10 @@ func (impl *implementation) Update(msg tea.Msg) tea.Cmd {
 		return nil
 	}
 
+	if !impl.isFocused {
+		return nil
+	}
+
 	// TODO allow for KeyMap overrides here?
 	castedMsg := msg.(tea.KeyMsg)
 	switch castedMsg.String() {
@@ -131,25 +136,41 @@ func (impl *implementation) Update(msg tea.Msg) tea.Cmd {
 }
 
 func (impl *implementation) UpdateFilter(newFilter func(int, filterable_list_item.Component) bool) {
-	highlightedOriginalItemIdx := impl.filteredItemsOriginalIndices[impl.highlightedItemIdx]
+	// This is a hack to indicate "the filtered list was empty, so there's no highlighted item original idx"
+	oldHighlightedItemOriginalIdx := -1
+
+	// If there are items being displayed, de-highlight the current item (if there are
+	if len(impl.filteredItemsOriginalIndices) > 0 {
+		oldHighlightedItemOriginalIdx = impl.filteredItemsOriginalIndices[impl.highlightedItemIdx]
+		oldHighlightedItem := impl.unfilteredItems[oldHighlightedItemOriginalIdx]
+		oldHighlightedItem.SetHighlighted(false)
+	}
 
 	// By default, assume that the highlighted item in the pre-filter list doesn't exist in the
 	// post-filter list (but we'll fix this below if the assumption is false)
-	impl.highlightedItemIdx = 0
+	newHighlightedItemIdx := 0
 
 	newFilteredItemOriginalIndices := []int{}
 	for idx, item := range impl.unfilteredItems {
 		if newFilter(idx, item) {
 			newFilteredItemOriginalIndices = append(newFilteredItemOriginalIndices, idx)
 
-			// If the highlighted item in the pre-filter list also exists in the post-filter list,
+			// If the previously-highlighted item also exists in the post-filter list,
 			// leave it highlighted
-			if idx == highlightedOriginalItemIdx {
-				impl.highlightedItemIdx = len(newFilteredItemOriginalIndices) - 1
+			if idx == oldHighlightedItemOriginalIdx {
+				newHighlightedItemIdx = len(newFilteredItemOriginalIndices) - 1
 			}
 		}
 	}
+
 	impl.filteredItemsOriginalIndices = newFilteredItemOriginalIndices
+	impl.highlightedItemIdx = newHighlightedItemIdx
+
+	// Highlight the new item (if possible)
+	if len(impl.filteredItemsOriginalIndices) > 0 {
+		item := impl.unfilteredItems[impl.highlightedItemIdx]
+		item.SetHighlighted(true)
+	}
 }
 
 func (impl *implementation) SetItems(items []filterable_list_item.Component) {
@@ -161,6 +182,12 @@ func (impl *implementation) SetItems(items []filterable_list_item.Component) {
 	impl.unfilteredItems = items
 	impl.filteredItemsOriginalIndices = filteredIndices
 	impl.highlightedItemIdx = 0
+
+	if len(impl.filteredItemsOriginalIndices) > 0 {
+		highlightedItemOriginalIdx := impl.filteredItemsOriginalIndices[impl.highlightedItemIdx]
+		item := impl.unfilteredItems[highlightedItemOriginalIdx]
+		item.SetHighlighted(true)
+	}
 }
 
 // Scrolls the highlighted selection down or up by the specified number of items, with safeguards to
@@ -186,7 +213,7 @@ func (impl *implementation) Scroll(scrollOffset int) {
 	// Highlight the new item
 	newHighlightOriginalIdx := impl.filteredItemsOriginalIndices[newHighlightedItemIdx]
 	newItem := impl.unfilteredItems[newHighlightOriginalIdx]
-	newItem.SetHighlighted(false)
+	newItem.SetHighlighted(true)
 
 	impl.highlightedItemIdx = newHighlightedItemIdx
 }

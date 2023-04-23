@@ -10,6 +10,7 @@ type Component interface {
 	components.InteractiveComponent
 
 	// Used for manipulations of the inner list (no need to reimplement all the functions)
+	// The items in the original list will match the items from GetItems
 	GetFilterableList() filterable_list.Component
 
 	SetItems(items []filterable_checklist_item.Component)
@@ -18,9 +19,14 @@ type Component interface {
 	// GetSelectedItemOriginalIndices gets the indices within the current items list that are selected
 	GetSelectedItemOriginalIndices() map[int]bool
 
+	ToggleHighlightedItemSelection()
+
 	// SetHighlightedItemSelection sets the selection for the currently-highlighted item
 	SetHighlightedItemSelection(isSelected bool)
 
 	// SetAllViewableItemsSelection sets the selection for all items that are currently shown (i.e. matching the filter)
 	SetAllViewableItemsSelection(isSelected bool)
+
+	// SetAllItemsSelection sets the selection on ALL items in the list (whether they're viewable or not)
+	SetAllItemsSelection(isSelected bool)
 }

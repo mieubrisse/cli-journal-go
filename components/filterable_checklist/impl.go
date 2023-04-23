@@ -50,27 +50,24 @@ func (impl *implementation) Update(msg tea.Msg) tea.Cmd {
 		return nil
 	}
 
+	if !impl.isFocused {
+		return nil
+	}
+
 	// TODO allow for KeyMap overrides here?
 	var returnCmd tea.Cmd
 	castedMsg := msg.(tea.KeyMsg)
 	switch castedMsg.String() {
 	case "x":
-		filteredItemOriginalIndicies := impl.innerList.GetFilteredItemIndices()
-		if len(filteredItemOriginalIndicies) == 0 {
-			break
-		}
-		itemOriginalIdx := filteredItemOriginalIndicies[impl.innerList.GetHighlightedItemIndex()]
-		item := impl.items[itemOriginalIdx]
-		isSelected := item.IsSelected()
-		impl.setItemSelection(itemOriginalIdx, !isSelected)
+		impl.ToggleHighlightedItemSelection()
+	case "s":
+		impl.SetAllViewableItemsSelection(true)
+	case "d":
+		impl.SetAllViewableItemsSelection(false)
 	case "S":
-		for _, originalIdx := range impl.innerList.GetFilteredItemIndices() {
-			impl.setItemSelection(originalIdx, true)
-		}
+		impl.SetAllItemsSelection(true)
 	case "D":
-		for _, originalIdx := range impl.innerList.GetFilteredItemIndices() {
-			impl.setItemSelection(originalIdx, false)
-		}
+		impl.SetAllItemsSelection(false)
 	default:
 		returnCmd = impl.innerList.Update(msg)
 	}
@@ -102,6 +99,17 @@ func (impl implementation) GetSelectedItemOriginalIndices() map[int]bool {
 	return impl.selectedItemIndices
 }
 
+func (impl *implementation) ToggleHighlightedItemSelection() {
+	filteredItemOriginalIndicies := impl.innerList.GetFilteredItemIndices()
+	if len(filteredItemOriginalIndicies) == 0 {
+		return
+	}
+	itemOriginalIdx := filteredItemOriginalIndicies[impl.innerList.GetHighlightedItemIndex()]
+	item := impl.items[itemOriginalIdx]
+	isSelected := item.IsSelected()
+	impl.setItemSelection(itemOriginalIdx, !isSelected)
+}
+
 func (impl *implementation) SetHighlightedItemSelection(isSelected bool) {
 	filteredItemIndices := impl.innerList.GetFilteredItemIndices()
 	if len(filteredItemIndices) == 0 {
@@ -122,6 +130,12 @@ func (impl *implementation) SetAllViewableItemsSelection(isSelected bool) {
 
 	for _, originalItemIdx := range filteredItemIndices {
 		impl.setItemSelection(originalItemIdx, isSelected)
+	}
+}
+
+func (impl *implementation) SetAllItemsSelection(isSelected bool) {
+	for idx := range impl.items {
+		impl.setItemSelection(idx, isSelected)
 	}
 }
 

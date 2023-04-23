@@ -4,8 +4,10 @@ import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mieubrisse/cli-journal-go/app_components/entry_item"
+	"github.com/mieubrisse/cli-journal-go/components/filterable_checklist"
+	"github.com/mieubrisse/cli-journal-go/components/filterable_checklist_item"
 	"github.com/mieubrisse/cli-journal-go/data_structures/content_item"
-	"github.com/mieubrisse/cli-journal-go/data_structures/selected_item_index_set"
 	"github.com/mieubrisse/cli-journal-go/global_styles"
 	"regexp"
 	"strings"
@@ -13,40 +15,31 @@ import (
 
 // This
 type Model struct {
+	checklist filterable_checklist.Component
+
+	items []entry_item.Component
+
 	// Whether to highlight the cursor line or not
 	isFocused bool
-
-	filterPredicate func(item content_item.ContentItem) bool
-
-	// All content that exists
-	allContent []content_item.ContentItem
-
-	// A list of indexes from the allContent list that match the given filter
-	filteredContentIndices []int
-
-	// Cursor index _within the filtered list_
-	cursorIdx int
-
-	selectedItemIndexes *selected_item_index_set.SelectedItemIndexSet
 
 	height int
 	width  int
 }
 
 // TODO replace content with contentProvider
-func New(content []content_item.ContentItem) Model {
-	filteredContentIndices := []int{}
-	for idx := range content {
-		filteredContentIndices = append(filteredContentIndices, idx)
+func New(content []entry_item.Component) Model {
+	castedContent := make([]filterable_checklist_item.Component, len(content))
+	for idx, item := range content {
+		castedContent[idx] = filterable_checklist_item.Component(item)
 	}
+	checklist := filterable_checklist.New(castedContent)
 
 	return Model{
-		// TODO this needs to be dynamic from the start args of the program - not sure how to do this!
-		isFocused:              true,
-		allContent:             content,
-		filteredContentIndices: filteredContentIndices,
-		cursorIdx:              0,
-		selectedItemIndexes:    selected_item_index_set.New(),
+		checklist: nil,
+		items:     nil,
+		isFocused: false,
+		height:    0,
+		width:     0,
 	}
 }
 
@@ -54,38 +47,20 @@ func (model Model) Init() tea.Cmd {
 	return nil
 }
 
-func (model Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	switch msg := msg.(type) {
+func (model Model) Update(msg tea.Msg) tea.Cmd {
+	// Do nothing on non-Keymsgs
+	switch msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "j":
-			newCursorIdx := model.cursorIdx + 1
-			if newCursorIdx >= len(model.filteredContentIndices) {
-				return model, nil
-			}
-			model.cursorIdx = newCursorIdx
-			return model, nil
-		case "k":
-			newCursorIdx := model.cursorIdx - 1
-			if newCursorIdx < 0 {
-				return model, nil
-			}
-			model.cursorIdx = newCursorIdx
-			return model, nil
-		case "x":
-			if model.selectedItemIndexes.Contains(model.cursorIdx) {
-				model.selectedItemIndexes.Remove(model.cursorIdx)
-			} else {
-				model.selectedItemIndexes.Add(model.cursorIdx)
-			}
-			return model, nil
-		}
-	case tea.WindowSizeMsg:
-		model.width = msg.Width
-		model.height = msg.Height
+		// Proceed to rest of function
+	default:
+		return nil
 	}
 
-	return model, nil
+	if !model.isFocused {
+		return nil
+	}
+
+	return model.checklist.Update(msg)
 }
 
 func (model Model) View() string {
@@ -194,21 +169,20 @@ func (model Model) Focused() bool {
 	return model.isFocused
 }
 
-// TODO return a model?
-func (model Model) Focus() Model {
+func (model *Model) Focus() {
 	model.isFocused = true
-	return model
+	model.checklist.Focus()
 }
 
-func (model Model) Blur() Model {
+func (model *Model) Blur() Model {
 	model.isFocused = false
-	return model
+	model.checklist.Blur()
 }
 
-func (model Model) Resize(width int, height int) Model {
+func (model *Model) Resize(width int, height int) {
 	model.width = width
 	model.height = height
-	return model
+	model.checklist.Resize(width, height)
 }
 
 // ====================================================================================================
@@ -216,6 +190,7 @@ func (model Model) Resize(width int, height int) Model {
 //	PRIVATE HELPER FUNCTIONS
 //
 // ====================================================================================================
+/*
 func (model Model) recalculateView() Model {
 	filteredContentIndices := []int{}
 	for idx, content := range model.allContent {
@@ -247,61 +222,6 @@ func (model Model) recalculateView() Model {
 
 	return model
 }
-
-/*
-func getNameMatchPredicate(nameFilterLines []string) func(item content_item.ContentItem) bool {
-	allSubPredicates := make([]func(item content_item.ContentItem) bool, len(nameFilterLines))
-	for idx, filterLine := range nameFilterLines {
-		terms := strings.Fields(filterLine)
-
-		// No terms == match everything
-		if len(terms) == 0 {
-			allSubPredicates[idx] = func(item content_item.ContentItem) bool {
-				return true
-			}
-			continue
-		}
-
-		matcher := getFuzzyMatcherFromTerms(terms)
-		allSubPredicates[idx] = func(item content_item.ContentItem) bool {
-			return matcher.MatchString(item.Name)
-		}
-	}
-
-	// Glue subpredicates together
-	return func(item content_item.ContentItem) bool {
-		for _, subPredicate := range allSubPredicates {
-			if !subPredicate(item) {
-				return false
-			}
-		}
-		return true
-	}
-}
-
-func getTagMatchPredicate(filterText string) func(item content_item.ContentItem) bool {
-	terms := strings.Fields(filterText)
-
-	// No terms == match everything
-	if len(terms) == 0 {
-		return func(item content_item.ContentItem) bool {
-			return true
-		}
-	}
-
-	matcher := getFuzzyMatcherFromTerms(terms)
-
-	// There's at least one search term now, so there must be at least one tag that matches all predicates
-	return func(item content_item.ContentItem) bool {
-		for _, tag := range item.Tags {
-			if matcher.MatchString(tag) {
-				return true
-			}
-		}
-		return false
-	}
-}
-
 */
 
 // Each line that has text, will produce a regex filter that must match
