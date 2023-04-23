@@ -75,6 +75,7 @@ func (model *Model) Focus() tea.Cmd {
 }
 
 func (model *Model) Blur() tea.Cmd {
+	model.input.CheckpointHistory()
 	model.isFocused = false
 	model.input.Blur()
 	return nil
@@ -131,9 +132,27 @@ func (model Model) SetMode(mode vim.Mode) Model {
 	return model
 }
 
-// Gets the text that has been
-func (model Model) GetCurrentLine() string {
+// Gets the filter text that the user's cursor is currently over, and if it's a tag filter or not
+func (model Model) GetCurrentFilter() (string, bool) {
 	cursorRow := model.input.GetCursorRow()
 	lines := strings.Split(model.input.GetValue(), "\n")
-	return lines[cursorRow]
+	line := lines[cursorRow]
+	line = strings.TrimSpace(line)
+
+	isTagFilter := false
+	if strings.HasPrefix(line, tagFilterLineLeader) {
+		isTagFilter = true
+		line = line[1:]
+	}
+	return line, isTagFilter
+}
+
+func (model Model) ReplaceCurrentFilter(filterText string, isTagFilter bool) Model {
+	model.input.CheckpointHistory()
+	newFilter := filterText
+	if isTagFilter {
+		newFilter = tagFilterLineLeader + filterText
+	}
+	model.input = model.input.ReplaceLine(newFilter)
+	return model
 }

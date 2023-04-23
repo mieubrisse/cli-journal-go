@@ -109,7 +109,7 @@ func (model Model[T]) View() string {
 		Render(result)
 }
 
-func (model Model[T]) UpdateFilter(newFilter func(T) bool) Model[T] {
+func (model Model[T]) UpdateFilter(newFilter func(int, T) bool) Model[T] {
 	highlightedOriginalItemIdx := model.filteredItemsOriginalIndices[model.highlightedItemIdx]
 
 	// By default, assume that the highlighted item in the pre-filter list doesn't exist in the
@@ -118,7 +118,7 @@ func (model Model[T]) UpdateFilter(newFilter func(T) bool) Model[T] {
 
 	newFilteredItemOriginalIndices := []int{}
 	for idx, item := range model.unfilteredItems {
-		if newFilter(item) {
+		if newFilter(idx, item) {
 			newFilteredItemOriginalIndices = append(newFilteredItemOriginalIndices, idx)
 
 			// If the highlighted item in the pre-filter list also exists in the post-filter list,
@@ -130,6 +130,18 @@ func (model Model[T]) UpdateFilter(newFilter func(T) bool) Model[T] {
 	}
 	model.filteredItemsOriginalIndices = newFilteredItemOriginalIndices
 
+	return model
+}
+
+func (model Model[T]) SetItems(items []T) Model[T] {
+	filteredIndices := []int{}
+	for idx := range items {
+		filteredIndices = append(filteredIndices, idx)
+	}
+
+	model.unfilteredItems = items
+	model.filteredItemsOriginalIndices = filteredIndices
+	model.highlightedItemIdx = 0
 	return model
 }
 
@@ -145,6 +157,18 @@ func (model Model[T]) Scroll(scrollOffset int) Model[T] {
 	}
 	model.highlightedItemIdx = newHighlightedItemIdx
 	return model
+}
+
+func (model Model[T]) GetFilteredItems() []T {
+	result := make([]T, len(model.filteredItemsOriginalIndices))
+	for idx, originalIdx := range model.filteredItemsOriginalIndices {
+		result[idx] = model.unfilteredItems[originalIdx]
+	}
+	return result
+}
+
+func (model Model[T]) GetHighlightedItemIdx() int {
+	return model.highlightedItemIdx
 }
 
 func (model Model[T]) Resize(width int, height int) Model[T] {
@@ -166,7 +190,7 @@ func (model *Model[T]) Focus() tea.Cmd {
 	return nil
 }
 
-func (model Model[T]) Blur() tea.Cmd {
+func (model *Model[T]) Blur() tea.Cmd {
 	model.isFocused = false
 	return nil
 }
@@ -174,4 +198,3 @@ func (model Model[T]) Blur() tea.Cmd {
 func (model Model[T]) Focused() bool {
 	return model.isFocused
 }
-

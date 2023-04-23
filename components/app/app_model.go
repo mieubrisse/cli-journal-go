@@ -5,12 +5,13 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mieubrisse/cli-journal-go/components/filter_pane"
 	"github.com/mieubrisse/cli-journal-go/components/filterable_content_list"
+	"github.com/mieubrisse/cli-journal-go/components/filterable_item_list"
 	"github.com/mieubrisse/cli-journal-go/components/form"
 	"github.com/mieubrisse/cli-journal-go/data_structures/content_item"
-	"github.com/mieubrisse/cli-journal-go/filterable_item_list"
 	"github.com/mieubrisse/cli-journal-go/global_styles"
 	"github.com/mieubrisse/cli-journal-go/helpers"
 	"github.com/mieubrisse/vim-bubble/vim"
+	"github.com/sahilm/fuzzy"
 	"time"
 )
 
@@ -37,6 +38,15 @@ var filtersLabelLine = lipgloss.NewStyle().
 	Bold(true).
 	Render("FILTERS")
 
+var TESTTEST = []string{
+	"foo",
+	"bar",
+	"bang bar",
+	"yes",
+	"this is also stuff",
+	"general-reference/wealthdraft",
+}
+
 type Model struct {
 	createContentForm form.Model
 
@@ -55,10 +65,11 @@ func New(
 	contentList filterable_content_list.Model,
 	filterPane filter_pane.Model,
 ) Model {
-	completionPane := filterable_item_list.New[tabCompletionItem]([]tabCompletionItem{
-		{completion: "foo"},
-		{completion: "bar bang blork whoa this is so long"},
-	})
+	completionItems := make([]tabCompletionItem, len(TESTTEST))
+	for idx, TEST := range TESTTEST {
+		completionItems[idx] = tabCompletionItem{completion: TEST}
+	}
+	completionPane := filterable_item_list.New[tabCompletionItem](completionItems)
 
 	return Model{
 		createContentForm:       createContentForm,
@@ -91,6 +102,7 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				// TODO switch to by-value
 				model.filterPane.Focus()
+				model.filterTabCompletionPane.Focus()
 				model.filterPane = model.filterPane.SetMode(vim.InsertMode)
 
 				return model, nil
@@ -120,23 +132,63 @@ func (model Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return model, cmd
 
 		} else if model.filterPane.Focused() {
-			if msg.String() == "\\" {
+			switch msg.String() {
+			case "\\":
 				// TODO switch to by-value
 				model.filterPane.Blur()
+				model.filterTabCompletionPane.Blur()
 
 				model.contentList = model.contentList.Focus()
 
 				model = model.resizeContentListAndFilterPane()
 
 				return model, nil
+			case "ctrl+j":
+				model.filterTabCompletionPane = model.filterTabCompletionPane.Scroll(1)
+				return model, nil
+			case "ctrl+k":
+				model.filterTabCompletionPane = model.filterTabCompletionPane.Scroll(-1)
+				return model, nil
 			}
 
 			var cmd tea.Cmd
-			model.filterPane, cmd = model.filterPane.Update(msg)
+			if msg.String() == "tab" {
+				// The user is tab-completing
+				completionItems := model.filterTabCompletionPane.GetFilteredItems()
+				if len(completionItems) > 0 {
+					highlightedCompletionIdx := model.filterTabCompletionPane.GetHighlightedItemIdx()
+					selectedCompletion := completionItems[highlightedCompletionIdx]
+					model.filterPane = model.filterPane.ReplaceCurrentFilter(selectedCompletion.completion, true)
+				}
+			} else {
+				model.filterPane, cmd = model.filterPane.Update(msg)
+			}
 
 			// Make sure to let the content list know about the changes
 			nameFilterList, tagFilterList := model.filterPane.GetFilterLines()
 			model.contentList = model.contentList.SetFilters(nameFilterList, tagFilterList)
+
+			// Update the tab-completion pane with changes, displaying nothing if the line isn't a tag filter line
+			filterText, isTagFilter := model.filterPane.GetCurrentFilter()
+			tabCompletionItems := make([]tabCompletionItem, 0)
+			if isTagFilter {
+				if len(filterText) > 0 {
+					matches := fuzzy.Find(filterText, TESTTEST)
+
+					tabCompletionItems = make([]tabCompletionItem, len(matches))
+					for idx, match := range matches {
+						tabCompletionItems[idx] = tabCompletionItem{
+							completion: TESTTEST[match.Index],
+						}
+					}
+				} else {
+					tabCompletionItems = make([]tabCompletionItem, len(TESTTEST))
+					for idx, TEST := range TESTTEST {
+						tabCompletionItems[idx] = tabCompletionItem{completion: TEST}
+					}
+				}
+			}
+			model.filterTabCompletionPane = model.filterTabCompletionPane.SetItems(tabCompletionItems)
 
 			return model, cmd
 		} else if model.createContentForm.Focused() {
